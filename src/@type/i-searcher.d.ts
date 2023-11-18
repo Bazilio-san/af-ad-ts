@@ -1,11 +1,10 @@
 import { SearchOptions, ClientOptions } from 'ldapjs';
 import { PagedResultsControl } from './i-ldap';
+import { IAbstractLogger } from './i-abstract-logger';
 
 export interface ISearchOptionsEx extends SearchOptions {
   includeMembership?: string[] | null
 }
-
-export type ISearchOptionsExPartial = Partial<ISearchOptionsEx>;
 
 export interface DefaultReferrals {
   /** Whether the to chase referrals. Default: false. */
@@ -14,68 +13,86 @@ export interface DefaultReferrals {
   exclude?: string[],
 }
 
-export interface SearcherConstructorOptions {
-  /** Where in the tree to start searches. */
-  baseDN: string,
-  /**
-   All the options relevant to an {@link ActiveDirectory} instance.
-   It must include an `opts` property that represents that is an {@link ISearchOptionsEx}
-   */
-  clientOptions: ClientOptions,
-  searchOptions: SearchOptions,
-  controls: PagedResultsControl[],
-  /**
-   A function to invoke when the search has completed.
-   This method must accept an error and a result, in that order.
-   */
-  callback: (...args: any[]) => void, // VVA Вынести
-
-  includeDeleted?: boolean,
-  defaultReferrals?: DefaultReferrals,
-  entryParser?: (_entry: any, _raw: any, _callback: Function) => void,
-}
-
-export interface SearcherOptionsPartial {
-  baseDN?: string,
-  opts?: object,
-  callback: Function,
-}
-
-export type IAsyncSearcherOptions = Omit<SearcherConstructorOptions, 'callback'>;
-
 /**
- * Determines which attributes are returned for LDAP queries for each type
- * of LDAP object.
- *
- * Default `user` attributes:
- * + cn
- * + comment
- * + description
- * + displayName
- * + distinquishedName
- * + dn
- * + employeeID
- * + givenName
- * + initials
- * + lockoutTime
- * + mail
- * + pwdLastSet
- * + sAMAccountName
- * + sn
- * + userAccountControl
- * + userPrincipalName
- * + whenCreated
- *
- * Default `group` attributes:
- * + cn
- * + description
- * + distinguishedName
- * + dn
- * + objectCategory
+ Determines which attributes are returned for LDAP queries for each type of LDAP object.
+
+ Default `user` attributes:
+ + cn
+ + comment
+ + description
+ + displayName
+ + distinquishedName
+ + dn
+ + employeeID
+ + givenName
+ + initials
+ + lockoutTime
+ + mail
+ + pwdLastSet
+ + sAMAccountName
+ + sn
+ + userAccountControl
+ + userPrincipalName
+ + whenCreated
+
+ Default `group` attributes:
+ + cn
+ + description
+ + distinguishedName
+ + dn
+ + objectCategory
  */
 export interface DefaultAttributes {
   user: string[],
   group: string[],
+}
+
+export type TEntryParser = (entry: any, raw: any, callback: Function) => void
+
+/**
+ * @example
+ * {
+ *    url: 'ldap://domain.com',
+ *    baseDN: 'dc=domain,dc=com',
+ *    username: 'admin@domain.com',
+ *    password: 'supersecret',
+ *    pageSize: 1000,
+ *    referrals: {
+ *      enabled: true
+ *    },
+ *    attributes: {
+ *      user: ['sAMAccountName', 'givenName', 'sn', 'mail'],
+ *      group: ['cn', 'description', 'dn']
+ *    }
+ *  }
+ *
+ */
+export interface IAdOptions {
+  /** The root DN for all operations */
+  baseDN: string,
+  /**
+   clientOptions.url // Full LDAP URL to the target Active Directory server.
+   clientOptions.bindDN // username - Any Active Directory acceptable username: 'user', 'user@domain.com', 'domain\user', 'cn=user,ou=users,dc=root'.
+   clientOptions.bindCredentials // password - The password for the given `username`
+   */
+  clientOptions: ClientOptions & { bindDN: string, bindCredentials: string }
+  searchOptions: ISearchOptionsEx,
+  controls?: PagedResultsControl[],
+
+  includeDeleted?: boolean,
+  defaultReferrals?: DefaultReferrals,
+  defaultAttributes?: DefaultAttributes,
+
+  entryParser?: TEntryParser,
+  logger?: IAbstractLogger,
+}
+
+export interface SearcherConstructorOptions extends IAdOptions {
+  /**
+   A function to invoke when the search has completed.
+   This method must accept an error and a result, in that order.
+   */
+  callback: (...args: any[]) => void,
 }
 
 /**
@@ -97,68 +114,28 @@ export interface DefaultAttributes {
  * @param {object} raw The raw search entry object as returned from ldap.js.
  * @param {function} callback The callback to execute when complete.
  */
-// eslint-disable-next-line no-unused-vars
-export type EntryParser = (entry: object, raw: object, callback: Function) => void
 
-/**
- * When supplying multiple arguments to the {@link ActiveDirectory} constructor,
- * the `defaults` parameter can be used to override some configuration properties.
- */
-export interface DefaultsParam {
-  attributes?: DefaultAttributes,
-  referrals?: DefaultReferrals,
-  entryParser?: EntryParser,
-}
+export type ISearcherResult = {
+  dn: string,
+  cn?: string,
+  sn?: string,
+  description?: string,
+  givenName?: string,
+  initials?: string,
+  distinguishedName?: string,
+  whenCreated?: string,
+  displayName?: string,
+  userAccountControl?: string,
+  employeeID?: string,
+  pwdLastSet?: string,
+  sAMAccountName?: string,
+  userPrincipalName?: string,
+  lockoutTime?: string,
+  objectCategory?: string,
+  objectClass?: string[],
+  mail: string
+  objectSID?: string,
+  comment?: string,
 
-export interface IAbstractLogger {
-  fatal: Function,
-  error: Function,
-  warn: Function,
-  info: Function,
-  debug: Function,
-  trace: Function,
-  silly: Function,
-}
-
-/**
- * Base configuration object for {@link ActiveDirectory}.
- *
- * @example
- * {
- *    url: 'ldap://domain.com',
- *    baseDN: 'dc=domain,dc=com',
- *    username: 'admin@domain.com',
- *    password: 'supersecret',
- *    pageSize: 1000,
- *    referrals: {
- *      enabled: true
- *    },
- *    attributes: {
- *      user: ['sAMAccountName', 'givenName', 'sn', 'mail'],
- *      group: ['cn', 'description', 'dn']
- *    }
- *  }
- *
- */
-export interface ADOptions {
-  /** The root DN for all operations */
-  baseDN: string,
-  /**
-   All the options relevant to an {@link ActiveDirectory} instance.
-   It must include an `opts` property that represents that is an {@link ISearchOptionsEx}
-   url: string -> clientOptions.url // Full LDAP URL to the target Active Directory server.
-   username: string -> clientOptions.bindDN // Any Active Directory acceptable username: 'user', 'user@domain.com', 'domain\user', 'cn=user,ou=users,dc=root'.
-   password: string -> clientOptions.bindCredentials // The password for the given `username`
-   */
-  clientOptions: ClientOptions & { bindDN: string, bindCredentials: string }
-  searchOptions: SearchOptions,
-
-  // defaultReferrals?: DefaultReferrals,
-  defaultAttributes?: DefaultAttributes,
-
-  entryParser?: (_entry: any, _raw: any, _callback: Function) => void,
-  logger?: IAbstractLogger,
-}
-
-export type ISearcherResult = any;
-export type ISearcherResults = ISearcherResult[];
+  [propName: string]: string | string[] | undefined,
+};

@@ -1,7 +1,7 @@
-import { EntryParser } from '../@type/i-searcher';
+import { TEntryParser } from '../@type/i-searcher';
 import * as utils from '../utilities';
 
-export const defaultEntryParser: EntryParser = (entry: any, raw: any, callback) => {
+export const defaultEntryParser: TEntryParser = (entry: any, raw: any, callback) => {
   if (Object.prototype.hasOwnProperty.call(raw, 'objectSid')) {
     entry.objectSid = utils.binarySidToStringSid(raw.objectSid);
   }

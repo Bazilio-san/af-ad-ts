@@ -1,16 +1,16 @@
 import { EventEmitter } from 'events';
-import cache from 'memory-cache';
 import { SearchOptions } from 'ldapjs';
 import { RangeAttribute } from './RangeAttribute';
 import { LdapSearchResult } from './LdapSearchResult';
 import { Searcher } from './Searcher';
+import { getLogger } from '../logger';
 
 /**
  * Parses the distinguishedName (dn) to remove any invalid characters or to
  * properly escape the request.
  */
 const parseDistinguishedName = (dn: string): string => {
-  const logger = cache.get('logger');
+  const logger = getLogger();
   logger.trace('parseDistinguishedName(%s)', dn);
   if (!dn) {
     return (dn);
@@ -40,14 +40,14 @@ export class RangeAttributesParser extends EventEmitter {
   }
 
   /**
-   * Give it a search result that *might* have some attributes with ranges and
+   * Give it a search result that *might* have some attributes with ranges, and
    * it'll recursively retrieve **all** of the values for said attributes. It
    * fires the `done` and `error` events appropriately.
    *
    * @param result - An LDAP search result.
    */
   parseResult (result: any) { // VVQ result ?
-    const logger = cache.get('logger');
+    const logger = getLogger();
     logger.trace('parsing result for range attributes: %j', result);
 
     const _result: LdapSearchResult = this.results.has(result.dn)

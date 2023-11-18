@@ -1,12 +1,13 @@
 import url from 'url';
 import ldap, { Client, SearchCallbackResponse, SearchEntry, SearchOptions, SearchReference } from 'ldapjs';
 import async from 'async';
-import cache from 'memory-cache';
 import { RangeAttributesParser } from './RangeAttributesParser';
 import { DEFAULT_PAGE_SIZE } from '../constants';
-import { IAbstractLogger, IAsyncSearcherOptions, ISearcherResults, SearcherConstructorOptions } from '../@type/i-searcher';
+import { IAdOptions, ISearcherResult, SearcherConstructorOptions } from '../@type/i-searcher';
 import { PagedResultsControl } from '../@type/i-ldap';
 import { LdapSearchResult } from './LdapSearchResult';
+import { getLogger } from '../logger';
+import { IAbstractLogger } from '../@type/i-abstract-logger';
 
 /**
  * An interface for performing searches against an Active Directory database.
@@ -37,7 +38,7 @@ export class Searcher {
   private readonly controls: PagedResultsControl[];
 
   constructor (options: SearcherConstructorOptions) {
-    this.logger = cache.get('logger');
+    this.logger = getLogger();
     this.options = options;
     this.baseDN = options.baseDN;
 
@@ -53,6 +54,8 @@ export class Searcher {
     this.searchComplete = false;
     this.rangeProcessing = false;
 
+    // @ts-ignore
+    clientOptions.paged = false;
     this.client = ldap.createClient(clientOptions);
     // to handle connection errors
     this.client.on('connectTimeout', callback);
@@ -264,14 +267,14 @@ export class Searcher {
   }
 }
 
-export const asyncSearcher = async (searchOptions: IAsyncSearcherOptions) => new Promise<ISearcherResults>((resolve, reject) => {
-  const callback = (err: Error | any, results: ISearcherResults) => { // VVQ result ?
+export const asyncSearcher = async (adOptions: IAdOptions) => new Promise<ISearcherResult[]>((resolve, reject) => {
+  const callback = (err: Error | any, results: ISearcherResult[]) => { // VVQ result ?
     if (err) {
       reject(err);
       return;
     }
     resolve(results);
   };
-  const searcher = new Searcher({ ...searchOptions, callback });
+  const searcher = new Searcher({ ...adOptions, callback });
   searcher.search();
 });

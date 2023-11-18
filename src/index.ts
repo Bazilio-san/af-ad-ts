@@ -1,3 +1,3 @@
 export {
 
-} from './classes/find-users';
+} from './lib/find-users';

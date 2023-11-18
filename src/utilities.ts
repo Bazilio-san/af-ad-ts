@@ -28,6 +28,13 @@ export const escLdapString = (s: string): string => {
   return sb;
 };
 
+export const ensureArray = (arg?: string | string[]): string[] => {
+  if (!arg) {
+    return [];
+  }
+  return Array.isArray(arg) ? arg : [arg];
+};
+
 /**
  * Gets a properly formatted LDAP compound filter. This is a very simple
  * approach to ensure that the LDAP compound filter is wrapped with an enclosing
@@ -144,15 +151,7 @@ export const getGroupQueryFilter = (groupName?: string): string => {
  * Checks to see if any of the specified attributes are the wildcard
  * '*' attribute or if the attributes array is empty.
  */
-export const shouldIncludeAllAttributes = (attributes: string | string[]): boolean => {
-  if (!attributes) {
-    return false;
-  }
-  if (!Array.isArray(attributes)) {
-    attributes = [attributes];
-  }
-  return attributes.length ? attributes.some((a) => a === '*') : true;
-};
+export const shouldIncludeAllAttributes = (attributes: string | string[] | undefined): boolean => ensureArray(attributes).some((a) => a === '*');
 
 /**
  * Checks to see if group membership for the specified type is enabled.
@@ -177,7 +176,7 @@ export const isIncludeGroupMembershipFor = (opts: ISearchOptionsEx, name: string
  * @params opts - LDAP query string parameters to execute.
  */
 export const getRequiredLdapAttributesForGroup = (opts: SearchOptions = {}): string[] => {
-  if (shouldIncludeAllAttributes(opts.attributes || [])) {
+  if (shouldIncludeAllAttributes(opts.attributes)) {
     return [];
   }
   const a = ['dn', 'objectCategory', 'groupType', 'cn'];
@@ -194,10 +193,7 @@ export const getRequiredLdapAttributesForGroup = (opts: SearchOptions = {}): str
  * @params opts - LDAP query string parameters to execute.
  */
 export const getRequiredLdapAttributesForUser = (opts: SearchOptions = {}): string[] => {
-  if (shouldIncludeAllAttributes(opts.attributes || [])) {
-    return [];
-  }
-  const a = ['dn', 'cn'];
+  const a: string[] = ['dn', 'cn'];
   if (isIncludeGroupMembershipFor(opts, 'user')) {
     a.push('member');
   }
@@ -271,9 +267,6 @@ export const isUserResult = (item: ISearcherResult): boolean => {
  * @return An array of attributes
  */
 export const joinAttributes = (...args: (string | string[])[]): string[] => {
-  if (args.some(shouldIncludeAllAttributes)) {
-    return [];
-  }
   const attrSet = new Set<string>();
   args.forEach((arr: string | string[]) => {
     if (typeof arr === 'string') {
@@ -282,7 +275,7 @@ export const joinAttributes = (...args: (string | string[])[]): string[] => {
       arr.forEach((i) => attrSet.add(i));
     }
   });
-  return [...attrSet];
+  return [...attrSet].sort();
 };
 
 /**
@@ -294,17 +287,16 @@ export const joinAttributes = (...args: (string | string[])[]): string[] => {
  * @returns A copy of the object with only the requested attributes.
  */
 export const pickAttributes = (result: object, attributes: string[]): object => {
-  let _attributes = attributes;
-  if (shouldIncludeAllAttributes(attributes)) {
-    _attributes = Object.getOwnPropertyNames(result);
-  }
-  const obj = {};
-  _attributes.forEach((attr) => {
-    if (Object.prototype.hasOwnProperty.call(result, attr)) {
-      obj[attr] = result[attr];
+  const arr = shouldIncludeAllAttributes(attributes) ? Object.getOwnPropertyNames(result) : attributes;
+  return arr.reduce((accum, attrName) => {
+    if (Object.prototype.hasOwnProperty.call(result, attrName)) {
+      const value = result[attrName];
+      if (value != null && typeof value !== 'function') {
+        accum[attrName] = value;
+      }
     }
-  });
-  return obj;
+    return accum;
+  }, {});
 };
 
 export const MAX_OUTPUT_LENGTH = 256;

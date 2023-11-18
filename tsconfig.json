@@ -24,7 +24,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "outDir": "dist/cjs",
+    "outDir": "dist",
     "rootDir": "./"
   },
   "include": [
