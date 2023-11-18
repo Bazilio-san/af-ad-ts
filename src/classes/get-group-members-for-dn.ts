@@ -1,17 +1,16 @@
-const cache = require('memory-cache');
-const Group = require('../models/Group');
-const utils = require('../utilities');
-const { asyncSearcher } = require('./Searcher');
-const { DEFAULT_ATTRIBUTES } = require('../constants');
+import cache from 'memory-cache';
+import { Group } from '../models/Group';
+import * as utils from '../utilities';
+import { asyncSearcher } from './Searcher';
+import { DEFAULT_ATTRIBUTES } from '../constants';
+import { IAsyncSearcherOptions } from '../@type/i-searcher';
 
 /**
  * An interface for querying a specific group for its members and its subgroups.
  *
- * @param {ISearchOptionsEx} fOptions
- * @param {string} dn The DN of the group to query.
- * @param {Map} hash
+ * dn - The DN of the group to query.
  */
-const asyncGetGroupMembersForDN = async (fOptions, dn, hash = new Map()) => {
+export const asyncGetGroupMembersForDN = async (fOptions: IAsyncSearcherOptions, dn: string, hash: Map<string, Group> = new Map()) => {
   const logger = cache.get('logger');
   logger.trace('getGroupMembershipForDN(%j,%s)', fOptions, dn);
 
@@ -19,20 +18,22 @@ const asyncGetGroupMembersForDN = async (fOptions, dn, hash = new Map()) => {
   if (!dn) {
     throw new Error('No distinguishedName (dn) specified for group membership retrieval.');
   }
-  const attributes = fOptions.attributes || DEFAULT_ATTRIBUTES.user;
+  const attributes = fOptions.searchOptions.attributes || DEFAULT_ATTRIBUTES.user;
 
   //  Note: Microsoft provides a 'Transitive Filter' for querying nested groups.
   //        i.e. (member:1.2.840.113556.1.4.1941:=<userDistinguishedName>)
   //        However this filter is EXTREMELY slow. Recursively querying ActiveDirectory
   //        is typically 10x faster.
-  const asyncSearcherOptions = {
+  const asyncSearcherOptions: IAsyncSearcherOptions = {
     ...fOptions,
-    filter: `(member=${utils.parseDistinguishedName(dn)})`,
-    scope: 'sub',
-    attributes: utils.joinAttributes(
-      attributes,
-      ['groupType'],
-    ),
+    searchOptions: {
+      filter: `(member=${utils.parseDistinguishedName(dn)})`,
+      scope: 'sub',
+      attributes: utils.joinAttributes(
+        attributes,
+        ['groupType'],
+      ),
+    },
   };
 
   const results = await asyncSearcher(asyncSearcherOptions);
@@ -41,7 +42,7 @@ const asyncGetGroupMembersForDN = async (fOptions, dn, hash = new Map()) => {
     return []; // VVQ
   }
 
-  const asyncIterator = async (group) => {
+  const asyncIterator = async (group: any) => {
     if (hash.has(group.cn || group.dn) || !utils.isGroupResult(group)) {
       return;
     }
@@ -61,5 +62,3 @@ const asyncGetGroupMembersForDN = async (fOptions, dn, hash = new Map()) => {
   logger.trace('Group "%s" has %d group(s). Groups: %j', dn, groups.length, groups.map((g) => g.dn));
   return groups;
 };
-
-module.exports = asyncGetGroupMembersForDN;

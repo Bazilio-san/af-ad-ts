@@ -1,19 +1,42 @@
 import url from 'url';
-import ldap from 'ldapjs';
+import ldap, { Client, SearchCallbackResponse, SearchEntry, SearchOptions, SearchReference } from 'ldapjs';
 import async from 'async';
 import cache from 'memory-cache';
-const RangeAttributesParser = require('../cls/RangeAttributesParser');
-const { DEFAULT_PAGE_SIZE } = require('../constants');
+import { RangeAttributesParser } from './RangeAttributesParser';
+import { DEFAULT_PAGE_SIZE } from '../constants';
+import { IAbstractLogger, IAsyncSearcherOptions, ISearcherResults, SearcherConstructorOptions } from '../@type/i-searcher';
+import { PagedResultsControl } from '../@type/i-ldap';
+import { LdapSearchResult } from './LdapSearchResult';
 
 /**
  * An interface for performing searches against an Active Directory database.
  * It handles ranged results, finding deleted items, and following referrals.
  */
-class Searcher {
-  /**
-   * @param {SearcherConstructorOptions} options
-   */
-  constructor (options) {
+export class Searcher {
+  public logger: IAbstractLogger;
+
+  public readonly options: SearcherConstructorOptions;
+
+  public readonly baseDN: string;
+
+  private readonly callback: (...args: any[]) => void;
+
+  public readonly searchOptions: SearchOptions;
+
+  private results: Map<string, any>;
+
+  // eslint-disable-next-line no-use-before-define
+  private pendingReferrals: Set<Searcher>;
+
+  private searchComplete: boolean;
+
+  private rangeProcessing: boolean;
+
+  private client: Client;
+
+  private readonly controls: PagedResultsControl[];
+
+  constructor (options: SearcherConstructorOptions) {
     this.logger = cache.get('logger');
     this.options = options;
     this.baseDN = options.baseDN;
@@ -25,8 +48,8 @@ class Searcher {
     this.callback = callback;
     this.searchOptions = searchOptions;
 
-    this.results = new Map();
-    this.pendingReferrals = new Set();
+    this.results = new Map<string, any>();
+    this.pendingReferrals = new Set<Searcher>();
     this.searchComplete = false;
     this.rangeProcessing = false;
 
@@ -38,11 +61,14 @@ class Searcher {
     this.controls = options.controls || [];
 
     // Add paging results control by default if not already added.
+    // @ts-ignore
     const pagedControls = this.controls.filter((control) => control instanceof ldap.PagedResultsControl);
 
     if (!searchOptions.paged && pagedControls.length === 0) {
       this.traceAttributes('Adding PagedResultControl to search (%s) with filter "%s" for %j');
-      const size = searchOptions.paged.pageSize || DEFAULT_PAGE_SIZE;
+      // @ts-ignore
+      const size = searchOptions.paged?.pageSize || DEFAULT_PAGE_SIZE;
+      // @ts-ignore
       this.controls.push(new ldap.PagedResultsControl({ value: { size } }));
     }
 
@@ -50,12 +76,14 @@ class Searcher {
       const deletedControls = this.controls.filter((control) => control.type === '1.2.840.113556.1.4.417');
       if (deletedControls.length === 0) {
         this.traceAttributes('Adding ShowDeletedOidControl(1.2.840.113556.1.4.417) to search (%s) with filter "%s" for %j');
+        // @ts-ignore
         this.controls.push(new ldap.Control({ type: '1.2.840.113556.1.4.417', criticality: true }));
+        // VVQ ldap.Control ?
       }
     }
   }
 
-  traceAttributes (messageTemplate, searchOptions = this.searchOptions) {
+  traceAttributes (messageTemplate: string, searchOptions = this.searchOptions) {
     this.logger.trace(
       messageTemplate,
       this.baseDN,
@@ -68,11 +96,11 @@ class Searcher {
    * If set via the options of the query run the entry through the function.
    * Otherwise, just feed it to the parser callback.
    *
-   * @param {object} entry The search entry object.
-   * @param {object} raw The raw search entry object as returned from ldap.js.
-   * @param {function} callback The callback to execute when complete.
+   * @param entry - The search entry object. // VVQ
+   * @param raw - The raw search entry object as returned from ldap.js. // VVQ
+   * @param callback - The callback to execute when complete.
    */
-  entryParser (entry, raw, callback) {
+  entryParser (entry: LdapSearchResult, raw: any, callback: Function) {
     return this.options.entryParser ? this.options.entryParser(entry, raw, callback) : callback(entry);
   }
 
@@ -83,7 +111,7 @@ class Searcher {
     if (this.rangeProcessing || this.pendingReferrals.size) {
       return;
     }
-    this.logger.trace('Active directory search (%s) for "%s" returned %d entries.', this.baseDN, this.searchOptions.filter, this.results.length);
+    this.logger.trace('Active directory search (%s) for "%s" returned %d entries.', this.baseDN, this.searchOptions.filter, this.results.size);
     this.client.unbind(undefined);
     this.callback(null, Array.from(this.results.values()));
   }
@@ -91,11 +119,12 @@ class Searcher {
   /**
    * Invoked when the ldap.js client is returning a search entry result.
    *
-   * @param {ldap.SearchEntry} entry The search entry as returned by ldap.js.
+   * @param entry The search entry as returned by ldap.js.
    */
-  onSearchEntry (entry) {
+  onSearchEntry (entry: SearchEntry) {
     this.logger.trace('onSearchEntry(entry)');
-    const result = entry.object;
+    // @ts-ignore
+    const result = entry.object; // VVQ json, pojo
     delete result.controls;
 
     // Some attributes can have range attributes (paging). Execute the query
@@ -104,12 +133,14 @@ class Searcher {
 
     const rangeProcessor = new RangeAttributesParser(this);
     rangeProcessor.on('error', this.callback);
-    rangeProcessor.on('done', (results) => {
+    rangeProcessor.on('done', (ldapSearchResults: LdapSearchResult[]) => {
       async.each(
-        results,
-        (result, acb) => {
-          this.entryParser(result, entry.raw, (r) => {
-            this.results.set(result.dn, r);
+        ldapSearchResults,
+        (entry2: LdapSearchResult, acb: Function) => {
+          // @ts-ignore
+          this.entryParser(entry2, entry.raw, (r) => { // VVA entry.raw?
+            // @ts-ignore
+            this.results.set(entry2.dn, r); // VVQ r?  entry2.dn ? неь свойства
             this.rangeProcessing = false;
             acb();
           });
@@ -125,7 +156,7 @@ class Searcher {
     rangeProcessor.parseResult(result);
   }
 
-  isReferralAllowed (referralUri) {
+  isReferralAllowed (referralUri: string): boolean {
     const { enabled, exclude = [] } = this.options.defaultReferrals || {};
     if (!referralUri || !enabled) {
       return false;
@@ -136,9 +167,9 @@ class Searcher {
   /**
    * Dequeues a referral chase client.
    *
-   * @param {Searcher} referral An instance of {@link Searcher} being used to chase a referral.
+   * @param referral - An instance of {@link Searcher} being used to chase a referral.
    */
-  removeReferral (referral) {
+  removeReferral (referral: Searcher) {
     if (!referral) {
       return;
     }
@@ -149,18 +180,19 @@ class Searcher {
   /**
    * Used to handle referrals, if they are enabled.
    *
-   * @param {ldap.SearchReference} referral A referral object that has a `uris` property.
+   * @param referral A referral object that has a `uris` property.
    */
-  onReferralChase (referral) {
-    referral.uris.forEach((uri) => {
+  onReferralChase (referral: SearchReference) {
+    referral.uris.forEach((uri: string) => {
       if (!this.isReferralAllowed(uri)) {
         return;
       }
 
       this.logger.trace('Following LDAP referral chase at %s', uri);
-      // TODO: use non-deprecated url parsing
-      const referral = url.parse(uri);
-      const referralBaseDn = (referral.pathname || '/').substring(1);
+      // TODO: use non-deprecated url parsing var URL = require('url').URL;
+      // TODO:  var myURL = new URL('http://www.example.com/foo?bar=1#main');
+      const ref = url.parse(uri);
+      const referralBaseDn = (ref.pathname || '/').substring(1);
       const refSearcher = new Searcher({
         ...this.options,
         baseDN: referralBaseDn,
@@ -186,45 +218,41 @@ class Searcher {
   search () {
     this.traceAttributes('Querying active directory (%s) with filter "%s" for %j');
 
-    this.client.search(this.baseDN, this.searchOptions, this.controls, (err, res) => {
+    this.client.search(this.baseDN, this.searchOptions, this.controls, (err, searchCallbackResponse: SearchCallbackResponse) => {
       if (err) {
         this.callback(err);
         return;
       }
-
-      const errCallback = (err) => {
-        if (err.name === 'SizeLimitExceededError') {
-          this.onSearchEnd(res);
+      const errCallback = (err2: Error | any) => {
+        if (err2.name === 'SizeLimitExceededError') {
+          this.onSearchEnd();
           return;
         }
 
         this.client.unbind(undefined);
-        this.logger.trace(err, '[%s] An error occurred performing the requested LDAP search on %s (%j)', err.errno || 'UNKNOWN', this.baseDN, this.options);
-        this.callback(err);
+        this.logger.trace(err2, '[%s] An error occurred performing the requested LDAP search on %s (%j)', err2.errno || 'UNKNOWN', this.baseDN, this.options);
+        this.callback(err2);
       };
 
-      res.on('searchEntry', this.onSearchEntry.bind(this));
-      res.on('searchReference', this.onReferralChase.bind(this));
-      res.on('error', errCallback);
-      res.on('end', (err) => {
+      searchCallbackResponse.on('searchEntry', this.onSearchEntry.bind(this));
+      searchCallbackResponse.on('searchReference', this.onReferralChase.bind(this));
+      searchCallbackResponse.on('error', errCallback);
+      searchCallbackResponse.on('end', () => {
         this.searchComplete = true;
-        this.onSearchEnd(err);
+        this.onSearchEnd();
       });
-    }, undefined);
+    });
   }
 
-  /**
-   * @param {ldap.SearchOptions} searchOptions
-   * @param {Function} rangeCB
-   */
-  rangeSearch (searchOptions, rangeCB) {
+  rangeSearch (searchOptions: SearchOptions, rangeCB: (...args: any[]) => void) {
     this.traceAttributes('Quering (%s) for range search with filter "%s" for: %j', searchOptions);
     this.client.search(this.baseDN, searchOptions, this.controls, (err, res) => {
       if (err) {
         return rangeCB(err);
       }
       res.on('searchEntry', (entry) => {
-        const obj = entry.object;
+        // @ts-ignore
+        const obj = entry.object; // VVA
         rangeCB(null, obj);
       });
       res.on('searchReference', this.onReferralChase.bind(this));
@@ -232,23 +260,18 @@ class Searcher {
         this.rangeProcessing = false;
       });
       res.on('error', rangeCB);
-    }, undefined);
+    });
   }
 }
 
-/**
- * @param {IAsyncSearcherOptions} searchOptions
- */
-const asyncSearcher = async (searchOptions) => new Promise((resolve, reject) => {
-  const callback = (err, result) => {
+export const asyncSearcher = async (searchOptions: IAsyncSearcherOptions) => new Promise<ISearcherResults>((resolve, reject) => {
+  const callback = (err: Error | any, results: ISearcherResults) => { // VVQ result ?
     if (err) {
       reject(err);
       return;
     }
-    resolve(result);
+    resolve(results);
   };
   const searcher = new Searcher({ ...searchOptions, callback });
   searcher.search();
 });
-
-module.exports = { Searcher, asyncSearcher };

@@ -28,11 +28,11 @@ export interface SearcherConstructorOptions {
    A function to invoke when the search has completed.
    This method must accept an error and a result, in that order.
    */
-  callback: Function,
+  callback: (...args: any[]) => void, // VVA Вынести
 
   includeDeleted?: boolean,
   defaultReferrals?: DefaultReferrals,
-  entryParser?: (_entry: object, _raw: object, _callback: Function) => void,
+  entryParser?: (_entry: any, _raw: any, _callback: Function) => void,
 }
 
 export interface SearcherOptionsPartial {
@@ -74,8 +74,8 @@ export type IAsyncSearcherOptions = Omit<SearcherConstructorOptions, 'callback'>
  * + objectCategory
  */
 export interface DefaultAttributes {
-  user?: string[],
-  group?: string[],
+  user: string[],
+  group: string[],
 }
 
 /**
@@ -156,6 +156,9 @@ export interface ADOptions {
   // defaultReferrals?: DefaultReferrals,
   defaultAttributes?: DefaultAttributes,
 
-  entryParser?: (_entry: object, _raw: object, _callback: Function) => void,
+  entryParser?: (_entry: any, _raw: any, _callback: Function) => void,
   logger?: IAbstractLogger,
 }
+
+export type ISearcherResult = any;
+export type ISearcherResults = ISearcherResult[];

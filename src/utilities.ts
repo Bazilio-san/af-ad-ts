@@ -2,7 +2,7 @@
 // throughout the ActiveDirectory code
 
 import { SearchOptions } from 'ldapjs';
-import { ISearchOptionsEx } from './@type/i-searcher';
+import { ISearcherResult, ISearchOptionsEx } from './@type/i-searcher';
 
 export const escLdapString = (s: string): string => {
   if (s == null) return '';
@@ -250,7 +250,7 @@ export const isGroupResult = (item: any): boolean => { // VVQ
  *
  * @param item - The LDAP result to inspect.
  */
-export const isUserResult = (item: any): boolean => {
+export const isUserResult = (item: ISearcherResult): boolean => {
   if (!item) {
     return false;
   }
@@ -270,13 +270,17 @@ export const isUserResult = (item: any): boolean => {
  * Retrieves / merges the attributes for the query.
  * @return An array of attributes
  */
-export const joinAttributes = (...args: string[][]): string[] => {
+export const joinAttributes = (...args: (string | string[])[]): string[] => {
   if (args.some(shouldIncludeAllAttributes)) {
     return [];
   }
   const attrSet = new Set<string>();
-  args.forEach((arr: string[]) => {
-    arr.forEach((i) => attrSet.add(i));
+  args.forEach((arr: string | string[]) => {
+    if (typeof arr === 'string') {
+      attrSet.add(arr);
+    } else {
+      arr.forEach((i) => attrSet.add(i));
+    }
   });
   return [...attrSet];
 };
@@ -311,7 +315,7 @@ export const MAX_OUTPUT_LENGTH = 256;
  * @param {string} output The output to truncate if too long
  * @param {number} [maxLength] The maximum length. If not specified, then the global value MAX_OUTPUT_LENGTH is used.
  */
-export const truncateLogOutput = (output: string, maxLength = MAX_OUTPUT_LENGTH): string => {
+export const truncateLogOutput = (output: any, maxLength = MAX_OUTPUT_LENGTH): string => {
   if (!output) {
     return output;
   }
