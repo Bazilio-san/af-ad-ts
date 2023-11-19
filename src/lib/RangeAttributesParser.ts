@@ -1,9 +1,10 @@
 import { EventEmitter } from 'events';
-import { SearchOptions } from 'ldapjs';
+import { SearchEntry, SearchOptions } from 'ldapjs';
 import { RangeAttribute } from './RangeAttribute';
 import { LdapSearchResult } from './LdapSearchResult';
 import { Searcher } from './Searcher';
 import { getLogger } from '../logger';
+import { getAttributeSingleValue, getAttributeValues } from '../attributes';
 
 /**
  * Parses the distinguishedName (dn) to remove any invalid characters or to
@@ -44,49 +45,48 @@ export class RangeAttributesParser extends EventEmitter {
    * it'll recursively retrieve **all** of the values for said attributes. It
    * fires the `done` and `error` events appropriately.
    *
-   * @param result - An LDAP search result.
+   * @param se - An LDAP search result.
    */
-  parseResult (result: any) { // VVQ result ?
+  parseResult (se?: SearchEntry) {
     const logger = getLogger();
-    logger.trace('parsing result for range attributes: %j', result);
+    logger.trace('parsing result for range attributes: %j', se);
+    if (!se) {
+      return;
+    }
+    const dn = getAttributeSingleValue<string>(se, 'dn');
+    const lsr: LdapSearchResult = this.results.has(dn)
+      ? this.results.get(dn) as LdapSearchResult
+      : new LdapSearchResult(se);
 
-    const _result: LdapSearchResult = this.results.has(result.dn)
-      ? this.results.get(result.dn) as LdapSearchResult
-      : new LdapSearchResult(result);
-    this.results.set(result.dn, _result);
-    if (!RangeAttribute.hasRangeAttributes(result)) {
+    this.results.set(dn, lsr);
+    if (!RangeAttribute.hasRangeAttributes(se)) {
       this.emit('done', this.getResults());
       return;
     }
 
-    const rangeAttributes: RangeAttribute[] = RangeAttribute.getRangeAttributes(result);
+    const rangeAttributes: RangeAttribute[] = RangeAttribute.getRangeAttributes(se);
     if (rangeAttributes.length === 0) {
       this.emit('done', this.getResults());
       return;
     }
 
     let queryAttributes: string[] = [];
-    rangeAttributes.forEach((attr: RangeAttribute) => {
-      const attrName: string = attr.attributeName || '';
-      if (!_result.rangeAttributes.has(attrName)) {
-        _result.rangeAttributes.set(attrName, attr);
+    rangeAttributes.forEach((rangeAttribute: RangeAttribute) => {
+      const { attributeName } = rangeAttribute;
+      if (!lsr.rangeAttributes.has(attributeName)) {
+        lsr.rangeAttributes.set(attributeName, rangeAttribute);
       }
-      if (!_result.rangeAttributeResults.has(attrName)) {
-        _result.rangeAttributeResults.set(attrName, []);
-      }
-
       // update the attribute result accumulator with the new page of values
-      const currRangeName = attr.toString();
-      const attrResults = _result.rangeAttributeResults.get(attrName);
-      const newResults = [].concat(attrResults, result[currRangeName]);
-      _result.rangeAttributeResults.set(attrName, newResults);
+      const currRangeName = rangeAttribute.toString();
+      const rangeAttributeResults = lsr.rangeAttributeResults.get(attributeName) || [];
+      const newResults = [...rangeAttributeResults, ...getAttributeValues(se, currRangeName)]; // VVQ
+      lsr.rangeAttributeResults.set(attributeName, newResults);
 
       // advance the query
-      const nextAttr = attr.next();
+      const nextAttr = rangeAttribute.next();
       if (nextAttr) {
-        _result.rangeAttributes.set(attrName, nextAttr);
-        delete _result.originalResult[currRangeName]; // VVQ originalResult ?
-        const nextRangeName = _result.rangeAttributes.get(attrName)?.toString();
+        lsr.rangeAttributes.set(attributeName, nextAttr);
+        const nextRangeName = lsr.rangeAttributes.get(attributeName)?.toString();
         if (nextRangeName && nextRangeName !== currRangeName) {
           queryAttributes.push(nextRangeName);
         }
@@ -99,14 +99,13 @@ export class RangeAttributesParser extends EventEmitter {
       return;
     }
 
-    const rangeKeysSet = new Set(Array.from(_result.rangeAttributes.keys())); // keys ? -> Set
     let { attributes = [] } = this.searcher.searchOptions;
     if (!Array.isArray(attributes)) {
       attributes = [attributes];
     }
-    const qa = attributes.filter((a) => !rangeKeysSet.has(a));
-    queryAttributes = [...queryAttributes, ...qa];
-    const filter = `(distinguishedName=${parseDistinguishedName(result.dn)})`;
+    const qa = attributes.filter((a) => !lsr.rangeAttributes.has(a));
+    queryAttributes = [...new Set([...queryAttributes, ...qa])];
+    const filter = `(distinguishedName=${parseDistinguishedName(dn)})`;
 
     const searchOptions: SearchOptions = {
       filter,
@@ -114,12 +113,12 @@ export class RangeAttributesParser extends EventEmitter {
       scope: this.searcher.searchOptions.scope,
     };
 
-    this.searcher.rangeSearch(searchOptions, (err, result2) => {
+    this.searcher.rangeSearch(searchOptions, (err, rangeSearchEntry) => {
       if (err) {
         this.emit('error', err);
         return;
       }
-      this.parseResult(result2);
+      this.parseResult(rangeSearchEntry);
     });
   }
 

@@ -6,6 +6,7 @@ import { DEFAULT_ATTRIBUTES } from '../constants';
 import { asyncGetGroupMembersForDN } from './get-group-members-for-dn';
 import { IAdOptions, ISearcherResult } from '../@type/i-searcher';
 import { getLogger } from '../logger';
+import { SearchEntry } from "ldapjs";
 
 const DEFAULT_USER_FILTER = '(|(objectClass=user)(objectClass=person))(!(objectClass=computer))(!(objectClass=group))';
 
@@ -25,12 +26,12 @@ export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
   const searchOptions = { attributes, filter, scope: 'sub' };
 
   const searchAdOptions: IAdOptions = merge({}, adOptions, { searchOptions });
-  const searcherResults: ISearcherResult[] = await asyncSearcher(searchAdOptions);
+  const searcherResults: SearchEntry[] = await asyncSearcher(searchAdOptions);
   if (!searcherResults?.length) {
     logger.trace('No users found matching query "%s"', utils.truncateLogOutput(filter));
     return [];
   }
-  const fn = async (result: ISearcherResult): Promise<IUser | undefined> => {
+  const fn = async (result: SearchEntry): Promise<IUser | undefined> => {
     if (!utils.isUserResult(result)) {
       return;
     }
@@ -47,7 +48,7 @@ export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
 };
 
 export const findUser = async (username: string, adOptions: IAdOptions): Promise<IUser | undefined> => {
-  const logger = getLogger(adOptions.logger);
+  const logger = getLogger(adOptions.clientOptions.log);
   const filter = adOptions.searchOptions.filter || utils.getUserQueryFilter(username);
   const searchAdOptions: IAdOptions = merge({}, adOptions, { searchOptions: { filter } });
   logger.trace('findUser(%j,%s,%s)', searchAdOptions, username);

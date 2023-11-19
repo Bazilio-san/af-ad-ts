@@ -1,8 +1,9 @@
 // this module consists of various utility functions that are used
 // throughout the ActiveDirectory code
 
-import { SearchOptions } from 'ldapjs';
-import { ISearcherResult, ISearchOptionsEx } from './@type/i-searcher';
+import { SearchEntry, SearchOptions } from 'ldapjs';
+import { ISearchOptionsEx } from './@type/i-searcher';
+import { getAttributeSingleValue, getAttributeValues, hasAttribute } from './attributes';
 
 export const escLdapString = (s: string): string => {
   if (s == null) return '';
@@ -222,42 +223,42 @@ export const getUserQueryFilter = (username: string): string => {
 
 /**
  * Checks to see if the LDAP result describes a group entry.
- *
- * @param item - The LDAP result to inspect.
  */
-export const isGroupResult = (item: any): boolean => { // VVQ
-  if (!item) {
+export const isGroupResult = (searchEntry: SearchEntry): boolean => { // VVQ
+  if (!searchEntry) {
     return false;
   }
-  if (item.groupType) {
+  if (hasAttribute(searchEntry, 'groupType')) {
     return true;
   }
-  if (item.objectCategory) {
-    return /CN=Group,CN=Schema,CN=Configuration,.*/i.test(item.objectCategory);
+  const objectCategory = getAttributeSingleValue(searchEntry, 'objectCategory');
+  if (objectCategory) {
+    return /CN=Group,CN=Schema,CN=Configuration,.*/i.test(objectCategory);
   }
-  if (item.objectClass?.length) {
-    return item.objectClass.some((c: string) => c.toLowerCase() === 'group');
+  const objectClass = getAttributeValues(searchEntry, 'objectClass');
+  if (objectClass?.length) {
+    return objectClass.some((c: string) => c.toLowerCase() === 'group');
   }
   return false;
 };
 
 /**
  * Checks to see if the LDAP result describes a user entry.
- *
- * @param item - The LDAP result to inspect.
  */
-export const isUserResult = (item: ISearcherResult): boolean => {
-  if (!item) {
+export const isUserResult = (searchEntry: SearchEntry): boolean => {
+  if (!searchEntry) {
     return false;
   }
-  if (item.userPrincipalName) {
+  if (hasAttribute(searchEntry, 'userPrincipalName')) {
     return true;
   }
-  if (item.objectCategory) {
-    return /CN=Person,CN=Schema,CN=Configuration,.*/i.test(item.objectCategory);
+  const objectCategory = getAttributeSingleValue(searchEntry, 'objectCategory');
+  if (objectCategory) {
+    return /CN=Person,CN=Schema,CN=Configuration,.*/i.test(objectCategory);
   }
-  if (item.objectClass?.length) {
-    return item.objectClass.some((c: string) => c.toLowerCase() === 'user');
+  const objectClass = getAttributeValues(searchEntry, 'objectClass');
+  if (objectClass?.length) {
+    return objectClass.some((c: string) => c.toLowerCase() === 'user');
   }
   return false;
 };

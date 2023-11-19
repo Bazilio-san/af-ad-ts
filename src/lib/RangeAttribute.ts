@@ -1,34 +1,30 @@
 // https://msdn.microsoft.com/en-us/library/cc223242.aspx
 // [attribute];range=[low]-[high]
 // matching: 1 = name, 2 = low, 3 = high
+import { Attribute, AttributeJson, SearchEntry } from 'ldapjs';
+
 const rangeRegex = /^([^;]+);range=(\d+)-([\d*]+)$/i;
 
 /**
  * Represents an attribute wherein a query has been limited to a specific range.
  */
 export class RangeAttribute {
-  public readonly attributeName: string | null;
+  public readonly attributeName: string;
 
-  private low: number | null;
+  private low: number;
 
   private high: number | null;
 
   /**
-   * @param attribute The actual attribute name. May also
+   * @param attributeType The actual attribute name. May also
    * contain a full range retrieval specifier for parsing
    * (i.e. [attribute];range=[low]-[high]). Optionally an object can be specified.
    */
-  constructor (attribute?: string | object | null) {
-    if (typeof attribute === 'string') {
-      const [, attributeName, low, high] = rangeRegex.exec(attribute) || [];
-      this.attributeName = attributeName;
-      this.low = parseInt(low, 10);
-      this.high = parseInt(high, 10) || null;
-    } else {
-      this.attributeName = null;
-      this.low = null;
-      this.high = null;
-    }
+  constructor (attributeType: string) {
+    const [, attributeName, low, high] = rangeRegex.exec(attributeType) || [];
+    this.attributeName = attributeName;
+    this.low = parseInt(low, 10);
+    this.high = parseInt(high, 10) || null;
   }
 
   /**
@@ -64,34 +60,25 @@ export class RangeAttribute {
 
   /**
    * Retrieves all the attributes which have range attributes specified.
-   * @param entry - SearchEntry to extract the range retrieval attributes from.
    */
-  static getRangeAttributes (entry: object): RangeAttribute[] {
-    const attributes: RangeAttribute[] = [];
-    Object.keys(entry).forEach((attribute) => {
-      if (RangeAttribute.isRangeAttribute(attribute)) {
-        attributes.push(new RangeAttribute(attribute));
-      }
-    });
-    return attributes;
-    // return  Object.keys(entry)
-    //   .filter((attribute) => RangeAttribute.isRangeAttribute(attribute))
-    //   .map((attribute) => new RangeAttribute(attribute)); // VVQ
+  static getRangeAttributes (se: SearchEntry): RangeAttribute[] {
+    return se.attributes
+      .filter(RangeAttribute.isRangeAttribute)
+      .map((attribute) => new RangeAttribute(attribute.type));
   }
 
   /**
    * Checks to see if the specified attribute is a range retrieval attribute.
    */
-  static isRangeAttribute (attribute: string): boolean {
-    return rangeRegex.test(attribute);
+  static isRangeAttribute (attribute: AttributeJson | Attribute): boolean {
+    const { type } = attribute;
+    return rangeRegex.test(type);
   }
 
   /**
    * Checks to see if the specified object has any range retrieval attributes.
-   *
-   * @param entry - SearchEntry to check for range retrieval specifiers.
    */
-  static hasRangeAttributes (entry: object): boolean {
-    return Object.keys(entry).some((v) => RangeAttribute.isRangeAttribute(v));
+  static hasRangeAttributes (se: SearchEntry): boolean {
+    return se.attributes.some(RangeAttribute.isRangeAttribute);
   }
 }

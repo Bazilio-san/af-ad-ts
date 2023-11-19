@@ -5,31 +5,30 @@ import { DEFAULT_ATTRIBUTES } from '../src/constants';
 import { findUser } from '../src/lib/find-users';
 import { IAdOptions } from '../src/@type/i-searcher';
 import { IUser } from '../src/models/user';
-import { IAbstractLogger } from "../src/@type/i-abstract-logger";
-
+import { IAbstractLogger } from '../src/@type/i-abstract-logger';
 
 const settings = require('./local/settings.local.js').findUser;
 const config = require('./local/config.local.js');
 
 const { ldapApi, domainControllers } = config;
 
-const firstDC: string = domainControllers[Object.keys(domainControllers)[0]][0];
-const firstDC3segments: string[] = ([...firstDC.split('.').reverse()].splice(0, 3)).reverse();
+const dcArray: string = domainControllers[Object.keys(domainControllers)[0]];
+const firstDC3segments: string[] = ([...dcArray[0].split('.').reverse()].splice(0, 3)).reverse();
 const baseDN: string = firstDC3segments.map((v) => `DC=${v}`).join(','); // : `DC=subDomen,DC=domen,DC=com`
 const adoOptions: IAdOptions = {
   baseDN,
   clientOptions: {
-    url: firstDC,
+    url: dcArray,
     bindDN: ldapApi.access.user,
     bindCredentials: ldapApi.access.password,
+    log: pino({ level: 'trace' }) as unknown as IAbstractLogger,
+    reconnect: true,
   },
   searchOptions: { paged: { pageSize: 100000 } },
-  // entryParser: (entry: any, raw: any, callback: Function) => { return callback(raw)},
-  // defaultAttributes: { user: [] },
-  logger: pino({ level: 'silent' }) as unknown as IAbstractLogger,
   includeDeleted: false,
+  // defaultAttributes: { user: [] },
   // defaultReferrals?: DefaultReferrals,
-  // entryParser?: (_entry: any, _raw: any, _callback: Function) => void,
+  // entryParser: (entry: any, raw: any, callback: Function) => { return callback(raw)},
 };
 
 // const query = 'CN=*';

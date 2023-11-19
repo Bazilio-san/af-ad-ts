@@ -1,12 +1,16 @@
+import { Attribute, SearchEntry } from 'ldapjs';
 import { TEntryParser } from '../@type/i-searcher';
-import * as utils from '../utilities';
+import { getAttribute } from '../attributes';
+import { binarySidToStringSid } from '../utilities';
 
-export const defaultEntryParser: TEntryParser = (entry: any, raw: any, callback) => {
-  if (Object.prototype.hasOwnProperty.call(raw, 'objectSid')) {
-    entry.objectSid = utils.binarySidToStringSid(raw.objectSid);
-  }
-  if (Object.prototype.hasOwnProperty.call(raw, 'objectGUID')) {
-    entry.objectGUID = utils.binarySidToStringSid(raw.objectGUID);
-  }
-  callback(entry);
+export const defaultEntryParser: TEntryParser = (searchEntry: SearchEntry, callback) => {
+  ['objectSid', 'objectGUID'].forEach((type) => {
+    const attribute = getAttribute<Attribute>(searchEntry, type);
+    if (attribute) {
+      const buf = attribute.buffers[attribute.buffers.length - 1];
+      const values = [binarySidToStringSid(buf)];
+      attribute.values = values;
+    }
+  });
+  callback(searchEntry);
 };

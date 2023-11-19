@@ -1,4 +1,4 @@
-import { SearchOptions, ClientOptions } from 'ldapjs';
+import { SearchOptions, ClientOptions, SearchEntry } from 'ldapjs';
 import { PagedResultsControl } from './i-ldap';
 import { IAbstractLogger } from './i-abstract-logger';
 
@@ -47,7 +47,7 @@ export interface DefaultAttributes {
   group: string[],
 }
 
-export type TEntryParser = (entry: any, raw: any, callback: Function) => void
+export type TEntryParser = (entry: SearchEntry, callback: Function) => void
 
 /**
  * @example
@@ -75,7 +75,11 @@ export interface IAdOptions {
    clientOptions.bindDN // username - Any Active Directory acceptable username: 'user', 'user@domain.com', 'domain\user', 'cn=user,ou=users,dc=root'.
    clientOptions.bindCredentials // password - The password for the given `username`
    */
-  clientOptions: ClientOptions & { bindDN: string, bindCredentials: string }
+  clientOptions: ClientOptions & {
+    bindDN: string,
+    bindCredentials: string
+    log?: IAbstractLogger,
+  }
   searchOptions: ISearchOptionsEx,
   controls?: PagedResultsControl[],
 
@@ -84,15 +88,16 @@ export interface IAdOptions {
   defaultAttributes?: DefaultAttributes,
 
   entryParser?: TEntryParser,
-  logger?: IAbstractLogger,
 }
+
+export type TSearchCallback = (err: any, results?: SearchEntry[]) => void
 
 export interface SearcherConstructorOptions extends IAdOptions {
   /**
    A function to invoke when the search has completed.
    This method must accept an error and a result, in that order.
    */
-  callback: (...args: any[]) => void,
+  callback: TSearchCallback,
 }
 
 /**

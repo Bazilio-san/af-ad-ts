@@ -1,41 +1,40 @@
+import { SearchEntry } from 'ldapjs';
 import { RangeAttribute } from './RangeAttribute';
+import { getAttributeSingleValue, getLastValue } from '../attributes';
 
 /**
  * Represents a paged search result.
  */
 export class LdapSearchResult {
-  public readonly originalResult: any; // VVQ
+  public readonly originalSearchEntry: SearchEntry;
 
   public rangeAttributes: Map<string, RangeAttribute>;
 
-  public rangeAttributeResults: Map<string, any>;
+  public rangeAttributeResults: Map<string, string[]>;
 
-  /**
-   * @param result - An LDAP search entry result.
-   */
-  constructor (result: any) { // VVQ
-    this.originalResult = result;
-    this.rangeAttributes = new Map<string, RangeAttribute>();
-    this.rangeAttributeResults = new Map<string, any>(); // VVQ
+  constructor (se: SearchEntry) {
+    this.originalSearchEntry = se;
+    this.rangeAttributes = new Map();
+    this.rangeAttributeResults = new Map();
   }
 
-  name () {
-    return this.originalResult.dn;
+  public name (): string {
+    return getAttributeSingleValue(this.originalSearchEntry, 'dn') || '';
   }
 
   /**
    * Populates the original search result's range valued attributes with the
    * retrieved values and returns the new search result.
    */
-  value (): any {
+  public value (): any {
     const result = {};
-    Object.getOwnPropertyNames(this.originalResult).forEach(
-      (k) => {
-        result[k] = this.originalResult[k];
-      },
-    );
-    Array.from(this.rangeAttributes.keys()).forEach((k) => {
-      result[k] = this.rangeAttributeResults.get(k);
+    this.originalSearchEntry.attributes.forEach((attribute) => {
+      result[attribute.type] = getLastValue(attribute.values);
+    });
+    [...this.rangeAttributes.keys()].forEach((k) => {
+      if (this.rangeAttributeResults.get(k)) {
+        result[k] = this.rangeAttributeResults.get(k);
+      }
     });
     return result;
   }
