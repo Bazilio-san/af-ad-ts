@@ -6,6 +6,10 @@ export interface ISearchOptionsEx extends SearchOptions {
   includeMembership?: string[] | null
 }
 
+export type IAttributesObject = {
+  [propName: string]: string | string[],
+};
+
 export interface DefaultReferrals {
   /** Whether the to chase referrals. Default: false. */
   enabled?: boolean,
@@ -47,26 +51,12 @@ export interface DefaultAttributes {
   group: string[],
 }
 
-export type TEntryParser = (entry: SearchEntry, callback: Function) => void
+export interface SearchEntryEx extends SearchEntry {
+  ao: IAttributesObject,
+}
 
-/**
- * @example
- * {
- *    url: 'ldap://domain.com',
- *    baseDN: 'dc=domain,dc=com',
- *    username: 'admin@domain.com',
- *    password: 'supersecret',
- *    pageSize: 1000,
- *    referrals: {
- *      enabled: true
- *    },
- *    attributes: {
- *      user: ['sAMAccountName', 'givenName', 'sn', 'mail'],
- *      group: ['cn', 'description', 'dn']
- *    }
- *  }
- *
- */
+export type TEntryParser = (entry: SearchEntryEx, callback: Function) => void
+
 export interface IAdOptions {
   /** The root DN for all operations */
   baseDN: string,
@@ -90,7 +80,7 @@ export interface IAdOptions {
   entryParser?: TEntryParser,
 }
 
-export type TSearchCallback = (err: any, results?: SearchEntry[]) => void
+export type TSearchCallback = (err: any, results?: SearchEntryEx[]) => void
 
 export interface SearcherConstructorOptions extends IAdOptions {
   /**
@@ -123,8 +113,4 @@ export type IFoundAttributes = {
   comment?: string,
 
   [propName: string]: string | string[] | undefined,
-};
-
-export type ISearchLDAPResult = {
-  [propName: string]: string | string[],
 };

@@ -1,9 +1,9 @@
 import url from 'url';
-import ldap, { Client, SearchCallbackResponse, SearchEntry, SearchOptions, SearchReference } from 'ldapjs';
+import ldap, { Client, SearchCallbackResponse, SearchOptions, SearchReference } from 'ldapjs';
 import async from 'async';
 import { RangeAttributesParser } from './RangeAttributesParser';
 import { DEFAULT_PAGE_SIZE } from '../constants';
-import { IAdOptions, SearcherConstructorOptions, TSearchCallback } from '../@type/i-searcher';
+import { IAdOptions, SearchEntryEx, SearcherConstructorOptions, TSearchCallback } from '../@type/i-searcher';
 import { PagedResultsControl } from '../@type/i-ldap';
 import { LdapSearchResult } from './LdapSearchResult';
 import { trace, toJson } from '../logger';
@@ -23,7 +23,7 @@ export class Searcher {
 
   public readonly searchOptions: SearchOptions;
 
-  private results: Map<string, SearchEntry>;
+  private results: Map<string, SearchEntryEx>;
 
   // eslint-disable-next-line no-use-before-define
   private pendingReferrals: Set<Searcher>;
@@ -97,7 +97,7 @@ export class Searcher {
    * @param entry - The search entry object. // VVQ
    * @param callback - The callback to execute when complete.
    */
-  entryParser (entry: SearchEntry, callback: Function) {
+  entryParser (entry: SearchEntryEx, callback: Function) {
     const { entryParser = defaultEntryParser } = this.options;
     entryParser(entry, callback);
   }
@@ -117,8 +117,10 @@ export class Searcher {
   /**
    * Invoked when the ldap.js client is returning a search entry result.
    */
-  onSearchEntry (searchEntry: SearchEntry) {
-    trace(`onSearchEntry() attributes: \n${toJson(attributesToObject(searchEntry))}`);
+  onSearchEntry (searchEntry: SearchEntryEx) {
+    searchEntry.ao = attributesToObject(searchEntry);
+
+    trace(`onSearchEntry() attributes: \n${toJson(searchEntry.ao)}`);
 
     // Some attributes can have range attributes (paging). Execute the query
     // again to get additional items.
@@ -131,7 +133,7 @@ export class Searcher {
         ldapSearchResults,
         (ldapSearchResult: LdapSearchResult, acb: Function) => {
           // @ts-ignore
-          this.entryParser(ldapSearchResult.originalSearchEntry, (se: SearchEntry) => {
+          this.entryParser(ldapSearchResult.originalSearchEntry, (se: SearchEntryEx) => {
             this.results.set(ldapSearchResult.name(), se);
             this.rangeProcessing = false;
             acb();
@@ -240,13 +242,14 @@ export class Searcher {
     });
   }
 
-  rangeSearch (searchOptions: SearchOptions, rangeCB: (err: any, se?: SearchEntry) => void) {
+  rangeSearch (searchOptions: SearchOptions, rangeCB: (err: any, se?: SearchEntryEx) => void) {
     this.traceAttributes('Quering (%dn) for range search', searchOptions);
     this.client.search(this.baseDN, searchOptions, this.controls, (err, res) => {
       if (err) {
         return rangeCB(err);
       }
-      res.on('searchEntry', (searchEntry: SearchEntry) => {
+      res.on('searchEntry', (searchEntry: SearchEntryEx) => {
+        searchEntry.ao = attributesToObject(searchEntry);
         rangeCB(null, searchEntry);
       });
       res.on('searchReference', this.onReferralChase.bind(this));
@@ -258,8 +261,8 @@ export class Searcher {
   }
 }
 
-export const asyncSearcher = async (adOptions: IAdOptions) => new Promise<SearchEntry[]>((resolve, reject) => {
-  const callback = (err: any, results?: SearchEntry[]) => {
+export const asyncSearcher = async (adOptions: IAdOptions) => new Promise<SearchEntryEx[]>((resolve, reject) => {
+  const callback = (err: any, results?: SearchEntryEx[]) => {
     if (err) {
       reject(err);
       return;

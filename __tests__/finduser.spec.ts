@@ -36,7 +36,7 @@ const adoOptions: IAdOptions = {
 
 describe('findUser()', () => {
   describe('#findUser()', () => {
-    ['dn', 'userPrincipalName', 'sAMAccountName', 'mail'].forEach((userAttribute) => {
+    ['userPrincipalName', 'sAMAccountName', 'dn', 'mail'].forEach((userAttribute) => {
       const username = settings.username[userAttribute];
       test(`should return user for (${userAttribute}) ${username}`, async () => {
         try {

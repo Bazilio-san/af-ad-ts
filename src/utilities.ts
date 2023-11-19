@@ -2,7 +2,7 @@
 // throughout the ActiveDirectory code
 
 import { SearchEntry, SearchOptions } from 'ldapjs';
-import { ISearchLDAPResult, ISearchOptionsEx } from './@type/i-searcher';
+import { IAttributesObject, ISearchOptionsEx } from './@type/i-searcher';
 import { getAttribute, getAttributeSingleValue, getAttributeValues, hasAttribute } from './attributes';
 
 export const ensureArray = (arg?: string | string[]): string[] => {
@@ -263,7 +263,7 @@ export const joinAttributes = (...args: (string | string[])[]): string[] => {
  * @params attributes - The desired or wanted attributes.
  * @returns object with only the requested attributes.
  */
-export const pickAttributes = (searchEntry: SearchEntry, desiredAttributes: string[]): ISearchLDAPResult => {
+export const pickAttributes = (searchEntry: SearchEntry, desiredAttributes: string[]): IAttributesObject => {
   const attrList = shouldIncludeAllAttributes(desiredAttributes)
     ? searchEntry.attributes.map((a) => a.type)
     : desiredAttributes;

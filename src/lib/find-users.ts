@@ -1,11 +1,10 @@
 import merge from 'merge-options';
-import { SearchEntry } from 'ldapjs';
 import * as utils from '../utilities';
 import { IUser, newUser } from '../models/user';
 import { asyncSearcher } from './Searcher';
 import { DEFAULT_ATTRIBUTES } from '../constants';
 import { asyncGetGroupMembersForDN } from './get-group-members-for-dn';
-import { IAdOptions } from '../@type/i-searcher';
+import { IAdOptions, SearchEntryEx } from '../@type/i-searcher';
 import { trace, toJson } from '../logger';
 
 const DEFAULT_USER_FILTER = '(|(objectClass=user)(objectClass=person))(!(objectClass=computer))(!(objectClass=group))';
@@ -24,14 +23,14 @@ export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
   const searchOptions = { attributes, filter, scope: 'sub' };
 
   const searchAdOptions: IAdOptions = merge({}, adOptions, { searchOptions });
-  const searcherResults: SearchEntry[] = await asyncSearcher(searchAdOptions);
+  const searcherResults: SearchEntryEx[] = await asyncSearcher(searchAdOptions);
 
   const strFilter = `filter:\n${toJson(filter)}`;
   if (!searcherResults?.length) {
     trace(`No users found matching ${strFilter}`);
     return [];
   }
-  const fn = async (searchEntry: SearchEntry): Promise<IUser | undefined> => {
+  const fn = async (searchEntry: SearchEntryEx): Promise<IUser | undefined> => {
     if (!utils.isUserResult(searchEntry)) {
       return;
     }

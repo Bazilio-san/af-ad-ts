@@ -1,10 +1,11 @@
 import { EventEmitter } from 'events';
-import { SearchEntry, SearchOptions } from 'ldapjs';
+import { SearchOptions } from 'ldapjs';
 import { RangeAttribute } from './RangeAttribute';
 import { LdapSearchResult } from './LdapSearchResult';
 import { Searcher } from './Searcher';
 import { trace, toJson } from '../logger';
 import { getAttributeValues, getSearchEntryKey } from '../attributes';
+import { SearchEntryEx } from '../@type/i-searcher';
 
 /**
  * Parses the distinguishedName (dn) to remove any invalid characters or to
@@ -46,7 +47,7 @@ export class RangeAttributesParser extends EventEmitter {
    *
    * @param se - An LDAP search result.
    */
-  parseResult (se?: SearchEntry) {
+  parseResult (se?: SearchEntryEx) {
     if (!se) {
       return;
     }

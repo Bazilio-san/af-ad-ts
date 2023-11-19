@@ -1,9 +1,9 @@
-import { Attribute, SearchEntry } from 'ldapjs';
-import { TEntryParser } from '../@type/i-searcher';
+import { Attribute } from 'ldapjs';
+import { SearchEntryEx, TEntryParser } from '../@type/i-searcher';
 import { getAttribute } from '../attributes';
 import { binarySidToStringSid } from '../utilities';
 
-export const defaultEntryParser: TEntryParser = (searchEntry: SearchEntry, callback) => {
+export const defaultEntryParser: TEntryParser = (searchEntry: SearchEntryEx, callback) => {
   ['objectSid', 'objectGUID'].forEach((type) => {
     const attribute = getAttribute<Attribute>(searchEntry, type);
     if (attribute) {

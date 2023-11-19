@@ -1,11 +1,10 @@
-import { SearchEntry } from 'ldapjs';
-import { newGroup, IGroup } from '../models/group';
 import * as utils from '../utilities';
 import { asyncSearcher } from './Searcher';
 import { DEFAULT_ATTRIBUTES } from '../constants';
-import { IAdOptions } from '../@type/i-searcher';
+import { IAdOptions, SearchEntryEx } from '../@type/i-searcher';
 import { trace } from '../logger';
 import { getAttributeSingleValue } from '../attributes';
+import { IGroup } from '../@type/i-group';
 
 /**
  * An interface for querying a specific group for its members and its subgroups.
@@ -37,19 +36,19 @@ export const asyncGetGroupMembersForDN = async (dn: string, adOptions: IAdOption
     },
   };
 
-  const searcherResults: SearchEntry[] = await asyncSearcher(searchAdOptions);
+  const searcherResults: SearchEntryEx[] = await asyncSearcher(searchAdOptions);
 
   if (!searcherResults?.length) {
     return []; // VVQ
   }
 
-  const fn = async (searchEntry: SearchEntry) => {
+  const fn = async (searchEntry: SearchEntryEx) => {
     const key = getAttributeSingleValue(searchEntry, 'cn') || getAttributeSingleValue(searchEntry, 'dn');
     if (!key || hash.has(key) || !utils.isGroupResult(searchEntry)) {
       return;
     }
     trace(`Adding group "${key}" to "${dn}"`);
-    const g = newGroup(searchEntry);
+    const g = searchEntry.ao as IGroup;
     hash.set(g.cn || g.dn, g);
     const nestedGroups = await asyncGetGroupMembersForDN(g.dn, adOptions, hash);
     nestedGroups.forEach((ng) => {

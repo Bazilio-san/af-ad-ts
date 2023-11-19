@@ -1,4 +1,4 @@
-import { ISearchLDAPResult } from '../@type/i-searcher';
+import { IAttributesObject } from '../@type/i-searcher';
 
 export interface IUser {
   groups: any[],
@@ -12,7 +12,7 @@ export interface IUser {
  * Represents an ActiveDirectory user account.
  * @param properties - The properties to assign to the newly created item.
  */
-export const newUser = (properties: ISearchLDAPResult): IUser => {
+export const newUser = (properties: IAttributesObject): IUser => {
   const user: IUser = Object.create(
     {
       isMemberOf (group: string): boolean {

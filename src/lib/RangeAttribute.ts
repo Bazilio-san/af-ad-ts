@@ -1,7 +1,8 @@
 // https://msdn.microsoft.com/en-us/library/cc223242.aspx
 // [attribute];range=[low]-[high]
 // matching: 1 = name, 2 = low, 3 = high
-import { Attribute, AttributeJson, SearchEntry } from 'ldapjs';
+import { Attribute, AttributeJson } from 'ldapjs';
+import { SearchEntryEx } from '../@type/i-searcher';
 
 const rangeRegex = /^([^;]+);range=(\d+)-([\d*]+)$/i;
 
@@ -61,7 +62,7 @@ export class RangeAttribute {
   /**
    * Retrieves all the attributes which have range attributes specified.
    */
-  static getRangeAttributes (se: SearchEntry): RangeAttribute[] {
+  static getRangeAttributes (se: SearchEntryEx): RangeAttribute[] {
     return se.attributes
       .filter(RangeAttribute.isRangeAttribute)
       .map((attribute) => new RangeAttribute(attribute.type));
@@ -78,7 +79,7 @@ export class RangeAttribute {
   /**
    * Checks to see if the specified object has any range retrieval attributes.
    */
-  static hasRangeAttributes (se: SearchEntry): boolean {
+  static hasRangeAttributes (se: SearchEntryEx): boolean {
     return se.attributes.some(RangeAttribute.isRangeAttribute);
   }
 }

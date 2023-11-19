@@ -1,18 +1,18 @@
-import { SearchEntry } from 'ldapjs';
 import { RangeAttribute } from './RangeAttribute';
 import { getAttributeSingleValue, getLastValue } from '../attributes';
+import { SearchEntryEx } from '../@type/i-searcher';
 
 /**
  * Represents a paged search result.
  */
 export class LdapSearchResult {
-  public readonly originalSearchEntry: SearchEntry;
+  public readonly originalSearchEntry: SearchEntryEx;
 
   public rangeAttributes: Map<string, RangeAttribute>;
 
   public rangeAttributeResults: Map<string, string[]>;
 
-  constructor (se: SearchEntry) {
+  constructor (se: SearchEntryEx) {
     this.originalSearchEntry = se;
     this.rangeAttributes = new Map();
     this.rangeAttributeResults = new Map();
