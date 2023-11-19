@@ -100,27 +100,7 @@ export interface SearcherConstructorOptions extends IAdOptions {
   callback: TSearchCallback,
 }
 
-/**
- * Allows for a custom function to be specified for parsing of the resulting
- * LDAP object. Examples include augmenting LDAP data with external data from an
- * RDBMs. If `null` is returned, the result is excluded.
- *
- * @example
- * function(entry, raw, callback) {
- *   // returning null to exclude result
- *   if (entry.ignore) return(null);
- *
- *   entry.retrievedAt = new Date();
- *   entry.preferredServer = getPreferredServerFromDatabase(entry.userPrincipalName);
- *
- *   callback(entry);
- * }
- * @param {object} entry The search entry object.
- * @param {object} raw The raw search entry object as returned from ldap.js.
- * @param {function} callback The callback to execute when complete.
- */
-
-export type ISearcherResult = {
+export type IFoundAttributes = {
   dn: string,
   cn?: string,
   sn?: string,
@@ -138,9 +118,13 @@ export type ISearcherResult = {
   lockoutTime?: string,
   objectCategory?: string,
   objectClass?: string[],
-  mail: string
+  mail?: string
   objectSID?: string,
   comment?: string,
 
   [propName: string]: string | string[] | undefined,
+};
+
+export type ISearchLDAPResult = {
+  [propName: string]: string | string[],
 };

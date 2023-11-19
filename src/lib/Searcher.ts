@@ -6,17 +6,15 @@ import { DEFAULT_PAGE_SIZE } from '../constants';
 import { IAdOptions, SearcherConstructorOptions, TSearchCallback } from '../@type/i-searcher';
 import { PagedResultsControl } from '../@type/i-ldap';
 import { LdapSearchResult } from './LdapSearchResult';
-import { getLogger } from '../logger';
-import { IAbstractLogger } from '../@type/i-abstract-logger';
+import { trace, toJson } from '../logger';
 import { defaultEntryParser } from './default-enry-parser';
+import { attributesToObject } from '../attributes';
 
 /**
  * An interface for performing searches against an Active Directory database.
  * It handles ranged results, finding deleted items, and following referrals.
  */
 export class Searcher {
-  public logger: IAbstractLogger;
-
   public readonly options: SearcherConstructorOptions;
 
   public readonly baseDN: string;
@@ -39,7 +37,6 @@ export class Searcher {
   private readonly controls: PagedResultsControl[];
 
   constructor (options: SearcherConstructorOptions) {
-    this.logger = getLogger();
     this.options = options;
     this.baseDN = options.baseDN;
 
@@ -69,7 +66,7 @@ export class Searcher {
     const pagedControls = this.controls.filter((control) => control instanceof ldap.PagedResultsControl);
 
     if (!searchOptions.paged && pagedControls.length === 0) {
-      this.traceAttributes('Adding PagedResultControl to search (%s) with filter "%s" for %j');
+      this.traceAttributes('Adding PagedResultControl to search (%dn)');
       // @ts-ignore
       const size = searchOptions.paged?.pageSize || DEFAULT_PAGE_SIZE;
       // @ts-ignore
@@ -77,23 +74,20 @@ export class Searcher {
     }
 
     if (options.includeDeleted) {
-      const deletedControls = this.controls.filter((control) => control.type === '1.2.840.113556.1.4.417');
+      const deletedType = '1.2.840.113556.1.4.417';
+      const deletedControls = this.controls.filter((control) => control.type === deletedType);
       if (deletedControls.length === 0) {
-        this.traceAttributes('Adding ShowDeletedOidControl(1.2.840.113556.1.4.417) to search (%s) with filter "%s" for %j');
+        this.traceAttributes(`Adding ShowDeletedOidControl(${deletedType}) to search (%dn)`);
         // @ts-ignore
-        this.controls.push(new ldap.Control({ type: '1.2.840.113556.1.4.417', criticality: true }));
+        this.controls.push(new ldap.Control({ type: deletedType, criticality: true }));
         // VVQ ldap.Control ?
       }
     }
   }
 
   traceAttributes (messageTemplate: string, searchOptions = this.searchOptions) {
-    this.logger.trace(
-      messageTemplate,
-      this.baseDN,
-      searchOptions.filter,
-      searchOptions.attributes || '[*]',
-    );
+    messageTemplate = messageTemplate.replace('%dn', this.baseDN);
+    trace(`${messageTemplate} with filter \n${toJson(searchOptions.filter)}\n for: \n${toJson(searchOptions.attributes || ['*'])}`);
   }
 
   /**
@@ -115,7 +109,7 @@ export class Searcher {
     if (this.rangeProcessing || this.pendingReferrals.size) {
       return;
     }
-    this.logger.trace('Active directory search (%s) for "%s" returned %d entries.', this.baseDN, this.searchOptions.filter, this.results.size);
+    trace(`Active directory search (${this.baseDN} returned ${this.results.size} entries for filter \n${toJson(this.searchOptions.filter)}\n`);
     this.client.unbind(undefined);
     this.callback(null, Array.from(this.results.values()));
   }
@@ -124,7 +118,7 @@ export class Searcher {
    * Invoked when the ldap.js client is returning a search entry result.
    */
   onSearchEntry (searchEntry: SearchEntry) {
-    this.logger.trace('onSearchEntry(entry)');
+    trace(`onSearchEntry() attributes: \n${toJson(attributesToObject(searchEntry))}`);
 
     // Some attributes can have range attributes (paging). Execute the query
     // again to get additional items.
@@ -137,8 +131,8 @@ export class Searcher {
         ldapSearchResults,
         (ldapSearchResult: LdapSearchResult, acb: Function) => {
           // @ts-ignore
-          this.entryParser(ldapSearchResult.originalSearchEntry, (searchEntry: SearchEntry) => {
-            this.results.set(ldapSearchResult.name(), searchEntry);
+          this.entryParser(ldapSearchResult.originalSearchEntry, (se: SearchEntry) => {
+            this.results.set(ldapSearchResult.name(), se);
             this.rangeProcessing = false;
             acb();
           });
@@ -186,7 +180,7 @@ export class Searcher {
         return;
       }
 
-      this.logger.trace('Following LDAP referral chase at %s', uri);
+      trace(`Following LDAP referral chase at ${uri}`);
       // TODO: use non-deprecated url parsing var URL = require('url').URL;
       // TODO:  var myURL = new URL('http://www.example.com/foo?bar=1#main');
       const ref = url.parse(uri);
@@ -196,7 +190,9 @@ export class Searcher {
         baseDN: referralBaseDn,
         callback: (err) => {
           if (err) {
-            this.logger.trace(err, '[%s] An error occurred chasing the LDAP referral on %s (%j)', err.errno, referralBaseDn, this.options);
+            // eslint-disable-next-line no-console
+            console.log(err);
+            trace(`[${err.errno}] An error occurred chasing the LDAP referral on ${referralBaseDn} options: (${toJson(this.options)})`);
           }
           this.removeReferral(refSearcher);
         },
@@ -214,7 +210,7 @@ export class Searcher {
    * during construction will be invoked.
    */
   search () {
-    this.traceAttributes('Querying active directory (%s) with filter "%s" for %j');
+    this.traceAttributes('Querying active directory (%dn)');
 
     this.client.search(this.baseDN, this.searchOptions, this.controls, (err, searchCallbackResponse: SearchCallbackResponse) => {
       if (err) {
@@ -228,7 +224,9 @@ export class Searcher {
         }
 
         this.client.unbind(undefined);
-        this.logger.trace(err2, '[%s] An error occurred performing the requested LDAP search on %s (%j)', err2.errno || 'UNKNOWN', this.baseDN, this.options);
+        // eslint-disable-next-line no-console
+        console.log(err2);
+        trace(`[${err2.errno || 'UNKNOWN'}] An error occurred performing the requested LDAP search on ${this.baseDN} options: (${toJson(this.options)})`);
         this.callback(err2);
       };
 
@@ -243,7 +241,7 @@ export class Searcher {
   }
 
   rangeSearch (searchOptions: SearchOptions, rangeCB: (err: any, se?: SearchEntry) => void) {
-    this.traceAttributes('Quering (%s) for range search with filter "%s" for: %j', searchOptions);
+    this.traceAttributes('Quering (%dn) for range search', searchOptions);
     this.client.search(this.baseDN, searchOptions, this.controls, (err, res) => {
       if (err) {
         return rangeCB(err);

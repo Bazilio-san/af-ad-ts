@@ -1,12 +1,12 @@
 import merge from 'merge-options';
+import { SearchEntry } from 'ldapjs';
 import * as utils from '../utilities';
 import { IUser, newUser } from '../models/user';
 import { asyncSearcher } from './Searcher';
 import { DEFAULT_ATTRIBUTES } from '../constants';
 import { asyncGetGroupMembersForDN } from './get-group-members-for-dn';
-import { IAdOptions, ISearcherResult } from '../@type/i-searcher';
-import { getLogger } from '../logger';
-import { SearchEntry } from "ldapjs";
+import { IAdOptions } from '../@type/i-searcher';
+import { trace, toJson } from '../logger';
 
 const DEFAULT_USER_FILTER = '(|(objectClass=user)(objectClass=person))(!(objectClass=computer))(!(objectClass=group))';
 
@@ -14,8 +14,6 @@ const DEFAULT_USER_FILTER = '(|(objectClass=user)(objectClass=person))(!(objectC
  * Finding users within the LDAP tree.
  */
 export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
-  const logger = getLogger();
-
   const askedAttributes = utils.ensureArray(adOptions.searchOptions.attributes || DEFAULT_ATTRIBUTES.user);
   const attributes = utils.joinAttributes(
     askedAttributes,
@@ -27,31 +25,32 @@ export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
 
   const searchAdOptions: IAdOptions = merge({}, adOptions, { searchOptions });
   const searcherResults: SearchEntry[] = await asyncSearcher(searchAdOptions);
+
+  const strFilter = `filter:\n${toJson(filter)}`;
   if (!searcherResults?.length) {
-    logger.trace('No users found matching query "%s"', utils.truncateLogOutput(filter));
+    trace(`No users found matching ${strFilter}`);
     return [];
   }
-  const fn = async (result: SearchEntry): Promise<IUser | undefined> => {
-    if (!utils.isUserResult(result)) {
+  const fn = async (searchEntry: SearchEntry): Promise<IUser | undefined> => {
+    if (!utils.isUserResult(searchEntry)) {
       return;
     }
-    const user = newUser(utils.pickAttributes(result, askedAttributes)); // VVQ Сократить количество атрибутов для быстрого поиска
+    const user = newUser(utils.pickAttributes(searchEntry, askedAttributes)); // VVQ Сократить количество атрибутов для быстрого поиска
     if (utils.isIncludeGroupMembershipFor(adOptions.searchOptions, 'user')) {
-      user.groups = await asyncGetGroupMembersForDN(adOptions, user.dn);
+      user.groups = await asyncGetGroupMembersForDN(user.dn, adOptions);
     }
     return user;
   };
   let users = await Promise.all<IUser | undefined>(searcherResults.map(fn));
   users = users.filter(Boolean);
-  logger.trace('%d user(s) found for query "%s"', users.length, utils.truncateLogOutput(filter));
+  trace(`${users.length} user(s) found for by ${strFilter}`);
   return users as IUser[];
 };
 
 export const findUser = async (username: string, adOptions: IAdOptions): Promise<IUser | undefined> => {
-  const logger = getLogger(adOptions.clientOptions.log);
   const filter = adOptions.searchOptions.filter || utils.getUserQueryFilter(username);
   const searchAdOptions: IAdOptions = merge({}, adOptions, { searchOptions: { filter } });
-  logger.trace('findUser(%j,%s,%s)', searchAdOptions, username);
+  trace(`findUser(${username}, \n${toJson(filter)})`);
   const users = await findUsers(searchAdOptions);
   return users?.[0];
 };

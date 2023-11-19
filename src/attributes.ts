@@ -1,4 +1,5 @@
 import { Attribute, AttributeJson, SearchEntry, SearchEntryObject } from 'ldapjs';
+import { ISearchLDAPResult } from './@type/i-searcher';
 
 export const hasAttribute = (seo: SearchEntry | SearchEntryObject, attrName: string): boolean => seo.attributes.some((a) => a.type === attrName);
 
@@ -24,4 +25,19 @@ export const getAttributeSingleValue = <T = string | undefined> (seo: SearchEntr
     return undefined as T;
   }
   return getLastValue(attr.values) as T;
+};
+
+export const attributesToObject = (searchEntry: SearchEntry): ISearchLDAPResult => searchEntry.attributes
+  .reduce((accum, attribute) => {
+    let v = attribute.values;
+    if (Array.isArray(v) && v.length === 1) {
+      v = v[0];
+    }
+    accum[attribute.type] = v;
+    return accum;
+  }, {});
+
+export const getSearchEntryKey = (se: SearchEntry): string => {
+  const key = getAttributeSingleValue(se, 'dn') || getAttributeSingleValue(se, 'cn');
+  return key || '';
 };

@@ -3,16 +3,15 @@ import { SearchEntry, SearchOptions } from 'ldapjs';
 import { RangeAttribute } from './RangeAttribute';
 import { LdapSearchResult } from './LdapSearchResult';
 import { Searcher } from './Searcher';
-import { getLogger } from '../logger';
-import { getAttributeSingleValue, getAttributeValues } from '../attributes';
+import { trace, toJson } from '../logger';
+import { getAttributeValues, getSearchEntryKey } from '../attributes';
 
 /**
  * Parses the distinguishedName (dn) to remove any invalid characters or to
  * properly escape the request.
  */
 const parseDistinguishedName = (dn: string): string => {
-  const logger = getLogger();
-  logger.trace('parseDistinguishedName(%s)', dn);
+  trace(`parseDistinguishedName(${dn})`);
   if (!dn) {
     return (dn);
   }
@@ -48,23 +47,22 @@ export class RangeAttributesParser extends EventEmitter {
    * @param se - An LDAP search result.
    */
   parseResult (se?: SearchEntry) {
-    const logger = getLogger();
-    logger.trace('parsing result for range attributes: %j', se);
     if (!se) {
       return;
     }
-    const dn = getAttributeSingleValue<string>(se, 'dn');
-    const lsr: LdapSearchResult = this.results.has(dn)
-      ? this.results.get(dn) as LdapSearchResult
+    const dnCn = getSearchEntryKey(se);
+    const lsr: LdapSearchResult = this.results.has(dnCn)
+      ? this.results.get(dnCn) as LdapSearchResult
       : new LdapSearchResult(se);
 
-    this.results.set(dn, lsr);
+    this.results.set(dnCn, lsr);
     if (!RangeAttribute.hasRangeAttributes(se)) {
       this.emit('done', this.getResults());
       return;
     }
 
     const rangeAttributes: RangeAttribute[] = RangeAttribute.getRangeAttributes(se);
+    trace(`Parsing result for range attributes:\n${toJson(rangeAttributes)}`);
     if (rangeAttributes.length === 0) {
       this.emit('done', this.getResults());
       return;
@@ -105,7 +103,7 @@ export class RangeAttributesParser extends EventEmitter {
     }
     const qa = attributes.filter((a) => !lsr.rangeAttributes.has(a));
     queryAttributes = [...new Set([...queryAttributes, ...qa])];
-    const filter = `(distinguishedName=${parseDistinguishedName(dn)})`;
+    const filter = `(distinguishedName=${parseDistinguishedName(dnCn)})`;
 
     const searchOptions: SearchOptions = {
       filter,

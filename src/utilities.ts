@@ -2,32 +2,8 @@
 // throughout the ActiveDirectory code
 
 import { SearchEntry, SearchOptions } from 'ldapjs';
-import { ISearchOptionsEx } from './@type/i-searcher';
-import { getAttributeSingleValue, getAttributeValues, hasAttribute } from './attributes';
-
-export const escLdapString = (s: string): string => {
-  if (s == null) return '';
-  let sb = '';
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    if (c === 92) {
-      sb += '\\5c';
-    } else if (c === 42) {
-      sb += '\\2a';
-    } else if (c === 40) {
-      sb += '\\28';
-    } else if (c === 41) {
-      sb += '\\29';
-    } else if (c === 0) {
-      sb += '\\00';
-      // } else if ((c & 0xff) > 127) {
-      //   sb += `\\${to2CharHexString(c)}`;
-    } else {
-      sb += String.fromCharCode(c);
-    }
-  }
-  return sb;
-};
+import { ISearchLDAPResult, ISearchOptionsEx } from './@type/i-searcher';
+import { getAttribute, getAttributeSingleValue, getAttributeValues, hasAttribute } from './attributes';
 
 export const ensureArray = (arg?: string | string[]): string[] => {
   if (!arg) {
@@ -283,18 +259,22 @@ export const joinAttributes = (...args: (string | string[])[]): string[] => {
  * Picks only the requested attributes from the ldap result. If a wildcard or
  * empty result is specified, then all attributes are returned.
  *
- * @params result - The LDAP result.
+ * @params searchEntry - The LDAP result.
  * @params attributes - The desired or wanted attributes.
- * @returns A copy of the object with only the requested attributes.
+ * @returns object with only the requested attributes.
  */
-export const pickAttributes = (result: object, attributes: string[]): object => {
-  const arr = shouldIncludeAllAttributes(attributes) ? Object.getOwnPropertyNames(result) : attributes;
-  return arr.reduce((accum, attrName) => {
-    if (Object.prototype.hasOwnProperty.call(result, attrName)) {
-      const value = result[attrName];
-      if (value != null && typeof value !== 'function') {
-        accum[attrName] = value;
+export const pickAttributes = (searchEntry: SearchEntry, desiredAttributes: string[]): ISearchLDAPResult => {
+  const attrList = shouldIncludeAllAttributes(desiredAttributes)
+    ? searchEntry.attributes.map((a) => a.type)
+    : desiredAttributes;
+  return attrList.reduce((accum, attrName) => {
+    const attribute = getAttribute(searchEntry, attrName);
+    let v = attribute?.values;
+    if (v != null) {
+      if (Array.isArray(v) && v.length === 1) {
+        v = v[0];
       }
+      accum[attrName] = v;
     }
     return accum;
   }, {});

@@ -1,18 +1,19 @@
+import { SearchEntry } from 'ldapjs';
 import { newGroup, IGroup } from '../models/group';
 import * as utils from '../utilities';
 import { asyncSearcher } from './Searcher';
 import { DEFAULT_ATTRIBUTES } from '../constants';
 import { IAdOptions } from '../@type/i-searcher';
-import { getLogger } from '../logger';
+import { trace } from '../logger';
+import { getAttributeSingleValue } from '../attributes';
 
 /**
  * An interface for querying a specific group for its members and its subgroups.
  *
  * dn - The DN of the group to query.
  */
-export const asyncGetGroupMembersForDN = async (adOptions: IAdOptions, dn: string, hash: Map<string, IGroup> = new Map()) => {
-  const logger = getLogger();
-  logger.trace('getGroupMembershipForDN(%j,%s)', adOptions, dn);
+export const asyncGetGroupMembersForDN = async (dn: string, adOptions: IAdOptions, hash: Map<string, IGroup> = new Map()) => {
+  trace(`getGroupMembershipForDN(${dn})`);
 
   // Ensure that a valid DN was provided. Otherwise, abort the search.
   if (!dn) {
@@ -36,29 +37,31 @@ export const asyncGetGroupMembersForDN = async (adOptions: IAdOptions, dn: strin
     },
   };
 
-  const results = await asyncSearcher(searchAdOptions);
+  const searcherResults: SearchEntry[] = await asyncSearcher(searchAdOptions);
 
-  if (!results?.length) {
+  if (!searcherResults?.length) {
     return []; // VVQ
   }
 
-  const asyncIterator = async (group: any) => {
-    if (hash.has(group.cn || group.dn) || !utils.isGroupResult(group)) {
+  const fn = async (searchEntry: SearchEntry) => {
+    const key = getAttributeSingleValue(searchEntry, 'cn') || getAttributeSingleValue(searchEntry, 'dn');
+    if (!key || hash.has(key) || !utils.isGroupResult(searchEntry)) {
       return;
     }
-    logger.trace('Adding group "%s" to %s"', group.dn, dn);
-    const g = newGroup(group);
+    trace(`Adding group "${key}" to "${dn}"`);
+    const g = newGroup(searchEntry);
     hash.set(g.cn || g.dn, g);
-    const nestedGroups = await asyncGetGroupMembersForDN(adOptions, g.dn, hash);
+    const nestedGroups = await asyncGetGroupMembersForDN(g.dn, adOptions, hash);
     nestedGroups.forEach((ng) => {
-      if (!hash.has(ng.cn || ng.dn)) {
-        hash.set(ng.cn || ng.dn, ng);
+      const newKey = ng.cn || ng.dn;
+      if (!hash.has(newKey)) {
+        hash.set(newKey, ng);
       }
     });
   };
-  await Promise.all(results.map(asyncIterator));
+  await Promise.all(searcherResults.map(fn));
 
   const groups = Array.from(hash.values());
-  logger.trace('Group "%s" has %d group(s). Groups: %j', dn, groups.length, groups.map((g) => g.dn));
+  trace(`Group "${dn}" has ${groups.length} group(s)`);
   return groups;
 };

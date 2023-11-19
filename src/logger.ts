@@ -1,25 +1,35 @@
-import cache from 'memory-cache';
+import { lBlue, magenta } from 'af-color';
 import { IAbstractLogger } from './@type/i-abstract-logger';
 
-const noop = () => null;
-
-const abstractLogger: IAbstractLogger = {
-  fatal: noop,
-  error: noop,
-  warn: noop,
-  info: noop,
-  silly: noop,
-  debug: noop,
-  trace: noop,
+let globalLogger: {
+  trace: Function;
 };
 
-export const getLogger = (logger?: IAbstractLogger) => {
-  const cachedLogger = cache.get('logger');
-  if (logger) {
-    if (!cachedLogger) {
-      cache.put('logger', logger);
-    }
-    return logger;
+export const setLogger = (logger: IAbstractLogger) => {
+  if (logger?.trace) {
+    globalLogger = logger;
+  } else if (logger?.silly) {
+    globalLogger = { trace: logger.silly.bind(logger) };
   }
-  return cachedLogger || abstractLogger;
+};
+
+let colorIndex = 0;
+const colors = [lBlue, magenta];
+const nextColor = (): string => {
+  colorIndex = colorIndex ? 0 : 1;
+  return colors[colorIndex];
+};
+
+export const trace = (message: string) => {
+  if (globalLogger) {
+    globalLogger.trace(`${nextColor()}${message}\n`);
+  }
+};
+
+export const toJson = (o: any): string => {
+  try {
+    return JSON.stringify(o, undefined, 2);
+  } catch (err: Error | any) {
+    return String(err.message || err);
+  }
 };

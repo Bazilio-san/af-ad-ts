@@ -1,3 +1,6 @@
+import { SearchEntry } from 'ldapjs';
+import { attributesToObject } from '../attributes';
+
 export interface IGroup {
   cn: string,
   dn: string,
@@ -8,10 +11,4 @@ export interface IGroup {
 /**
  * Represents an ActiveDirectory group.
  */
-export const newGroup = (properties: any): IGroup => {
-  const group = {} as IGroup;
-  Object.getOwnPropertyNames(properties || {}).forEach((prop) => {
-    group[prop] = properties[prop];
-  });
-  return group;
-};
+export const newGroup = (searchEntry: SearchEntry): IGroup => attributesToObject(searchEntry) as IGroup;
