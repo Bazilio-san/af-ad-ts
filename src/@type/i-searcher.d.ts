@@ -1,9 +1,10 @@
-import { SearchOptions, ClientOptions, SearchEntry } from 'ldapjs';
+import { SearchOptions, ClientOptions, SearchEntry, Filter } from 'ldapjs';
 import { PagedResultsControl } from './i-ldap';
 import { IAbstractLogger } from './i-abstract-logger';
 
 export interface ISearchOptionsEx extends SearchOptions {
-  includeMembership?: string[] | null
+  includeMembership?: string[] | null,
+  f?: string | Filter,
 }
 
 export type IAttributesObject = {
@@ -53,6 +54,7 @@ export interface DefaultAttributes {
 
 export interface SearchEntryEx extends SearchEntry {
   ao: IAttributesObject,
+  idn: string,
 }
 
 export type TEntryParser = (entry: SearchEntryEx, callback: Function) => void

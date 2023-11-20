@@ -1,8 +1,9 @@
-import { IAttributesObject } from '../@type/i-searcher';
+import { SearchEntryEx } from '../@type/i-searcher';
+import { pickAttributes } from '../utilities';
 
 export interface IUser {
   groups: any[],
-  dn: string,
+  idn: string,
   isMemberOf: (group: string) => boolean,
 
   [propName: string]: string | any[] | ((group: string) => boolean),
@@ -10,9 +11,8 @@ export interface IUser {
 
 /**
  * Represents an ActiveDirectory user account.
- * @param properties - The properties to assign to the newly created item.
  */
-export const newUser = (properties: IAttributesObject): IUser => {
+export const newUser = (searchEntry: SearchEntryEx, askedAttributes: string[]): IUser => {
   const user: IUser = Object.create(
     {
       isMemberOf (group: string): boolean {
@@ -23,9 +23,11 @@ export const newUser = (properties: IAttributesObject): IUser => {
         // @ts-ignore
         return this.groups?.some((g) => g.toLowerCase() === groupLc) || false;
       },
+      idn: searchEntry.idn,
     },
   );
 
+  const properties = pickAttributes(searchEntry, askedAttributes);
   Object.assign(user, properties);
   return user;
 };

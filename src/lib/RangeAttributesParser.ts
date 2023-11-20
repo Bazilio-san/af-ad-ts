@@ -1,11 +1,10 @@
 import { EventEmitter } from 'events';
-import { SearchOptions } from 'ldapjs';
 import { RangeAttribute } from './RangeAttribute';
 import { LdapSearchResult } from './LdapSearchResult';
 import { Searcher } from './Searcher';
 import { trace, toJson } from '../logger';
 import { getAttributeValues, getSearchEntryKey } from '../attributes';
-import { SearchEntryEx } from '../@type/i-searcher';
+import { ISearchOptionsEx, SearchEntryEx } from '../@type/i-searcher';
 
 /**
  * Parses the distinguishedName (dn) to remove any invalid characters or to
@@ -106,7 +105,7 @@ export class RangeAttributesParser extends EventEmitter {
     queryAttributes = [...new Set([...queryAttributes, ...qa])];
     const filter = `(distinguishedName=${parseDistinguishedName(dnCn)})`;
 
-    const searchOptions: SearchOptions = {
+    const searchOptions: ISearchOptionsEx = {
       filter,
       attributes: queryAttributes,
       scope: this.searcher.searchOptions.scope,
@@ -122,8 +121,6 @@ export class RangeAttributesParser extends EventEmitter {
   }
 
   getResults (): LdapSearchResult[] {
-    const results: LdapSearchResult[] = [];
-    Array.from(this.results.values()).forEach((v) => results.push(v.value()));
-    return results;
+    return [...this.results.values()];
   }
 }

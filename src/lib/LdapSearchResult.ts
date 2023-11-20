@@ -1,6 +1,6 @@
 import { RangeAttribute } from './RangeAttribute';
-import { getAttributeSingleValue, getLastValue } from '../attributes';
-import { SearchEntryEx } from '../@type/i-searcher';
+import { getAttributeSingleValue } from '../attributes';
+import { IAttributesObject, SearchEntryEx } from '../@type/i-searcher';
 
 /**
  * Represents a paged search result.
@@ -19,21 +19,23 @@ export class LdapSearchResult {
   }
 
   public name (): string {
-    return getAttributeSingleValue(this.originalSearchEntry, 'dn') || '';
+    const se = this.originalSearchEntry;
+    return se.objectName?.toString()
+      || getAttributeSingleValue(se, 'dn')
+      || getAttributeSingleValue(se, 'distinguishedName')
+      || '';
   }
 
   /**
    * Populates the original search result's range valued attributes with the
    * retrieved values and returns the new search result.
    */
-  public value (): any {
-    const result = {};
-    this.originalSearchEntry.attributes.forEach((attribute) => {
-      result[attribute.type] = getLastValue(attribute.values);
-    });
+  public value (): IAttributesObject {
+    const result = this.originalSearchEntry.ao;
     [...this.rangeAttributes.keys()].forEach((k) => {
-      if (this.rangeAttributeResults.get(k)) {
-        result[k] = this.rangeAttributeResults.get(k);
+      const v = this.rangeAttributeResults.get(k);
+      if (v) {
+        result[k] = v;
       }
     });
     return result;

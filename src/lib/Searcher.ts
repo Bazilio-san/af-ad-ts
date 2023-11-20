@@ -1,14 +1,15 @@
 import url from 'url';
-import ldap, { Client, SearchCallbackResponse, SearchOptions, SearchReference } from 'ldapjs';
+import ldap, { Client, SearchCallbackResponse, SearchReference } from 'ldapjs';
 import async from 'async';
 import { RangeAttributesParser } from './RangeAttributesParser';
 import { DEFAULT_PAGE_SIZE } from '../constants';
-import { IAdOptions, SearchEntryEx, SearcherConstructorOptions, TSearchCallback } from '../@type/i-searcher';
+import { IAdOptions, ISearchOptionsEx, SearchEntryEx, SearcherConstructorOptions, TSearchCallback } from '../@type/i-searcher';
 import { PagedResultsControl } from '../@type/i-ldap';
 import { LdapSearchResult } from './LdapSearchResult';
 import { trace, toJson } from '../logger';
 import { defaultEntryParser } from './default-enry-parser';
 import { attributesToObject } from '../attributes';
+import { getDN } from '../utilities';
 
 /**
  * An interface for performing searches against an Active Directory database.
@@ -21,7 +22,7 @@ export class Searcher {
 
   private readonly callback: TSearchCallback;
 
-  public readonly searchOptions: SearchOptions;
+  public readonly searchOptions: ISearchOptionsEx;
 
   private results: Map<string, SearchEntryEx>;
 
@@ -46,6 +47,7 @@ export class Searcher {
     }
     this.callback = callback;
     this.searchOptions = searchOptions;
+    this.searchOptions.f = searchOptions.filter;
 
     this.results = new Map();
     this.pendingReferrals = new Set<Searcher>();
@@ -87,7 +89,7 @@ export class Searcher {
 
   traceAttributes (messageTemplate: string, searchOptions = this.searchOptions) {
     messageTemplate = messageTemplate.replace('%dn', this.baseDN);
-    trace(`${messageTemplate} with filter \n${toJson(searchOptions.filter)}\n for: \n${toJson(searchOptions.attributes || ['*'])}`);
+    trace(`${messageTemplate} with filter \n${toJson(searchOptions.f)}\n for: \n${toJson(searchOptions.attributes || ['*'])}`);
   }
 
   /**
@@ -109,15 +111,16 @@ export class Searcher {
     if (this.rangeProcessing || this.pendingReferrals.size) {
       return;
     }
-    trace(`Active directory search (${this.baseDN} returned ${this.results.size} entries for filter \n${toJson(this.searchOptions.filter)}\n`);
+    trace(`Active directory search [${this.baseDN}] returned ${this.results.size} entries for filter \n${toJson(this.searchOptions.f)}\n`);
     this.client.unbind(undefined);
-    this.callback(null, Array.from(this.results.values()));
+    this.callback(null, [...this.results.values()]);
   }
 
   /**
    * Invoked when the ldap.js client is returning a search entry result.
    */
   onSearchEntry (searchEntry: SearchEntryEx) {
+    searchEntry.idn = getDN(searchEntry);
     searchEntry.ao = attributesToObject(searchEntry);
 
     trace(`onSearchEntry() attributes: \n${toJson(searchEntry.ao)}`);
@@ -228,7 +231,8 @@ export class Searcher {
         this.client.unbind(undefined);
         // eslint-disable-next-line no-console
         console.log(err2);
-        trace(`[${err2.errno || 'UNKNOWN'}] An error occurred performing the requested LDAP search on ${this.baseDN} options: (${toJson(this.options)})`);
+        trace(`[${err2.errno || 'UNKNOWN'}] An error occurred performing the requested LDAP search on ${
+          this.baseDN} options: (${toJson(this.options)})`);
         this.callback(err2);
       };
 
@@ -242,7 +246,7 @@ export class Searcher {
     });
   }
 
-  rangeSearch (searchOptions: SearchOptions, rangeCB: (err: any, se?: SearchEntryEx) => void) {
+  rangeSearch (searchOptions: ISearchOptionsEx, rangeCB: (err: any, se?: SearchEntryEx) => void) {
     this.traceAttributes('Quering (%dn) for range search', searchOptions);
     this.client.search(this.baseDN, searchOptions, this.controls, (err, res) => {
       if (err) {

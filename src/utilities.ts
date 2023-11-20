@@ -1,8 +1,8 @@
 // this module consists of various utility functions that are used
 // throughout the ActiveDirectory code
 
-import { SearchEntry, SearchOptions } from 'ldapjs';
-import { IAttributesObject, ISearchOptionsEx } from './@type/i-searcher';
+import { parseDN, SearchEntry, SearchOptions } from 'ldapjs';
+import { IAttributesObject, ISearchOptionsEx, SearchEntryEx } from './@type/i-searcher';
 import { getAttribute, getAttributeSingleValue, getAttributeValues, hasAttribute } from './attributes';
 
 export const ensureArray = (arg?: string | string[]): string[] => {
@@ -33,6 +33,30 @@ export const getCompoundFilter = (filter: string): string | boolean => {
  */
 export const isDistinguishedName = (value: string): boolean => /(([^=]+=.+),?)+/gi.test(String(value));
 
+export const escLdapString = (s: string): string => {
+  if (s == null) return '';
+  let sb = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c === 92) {
+      sb += '\\5c';
+    } else if (c === 42) {
+      sb += '\\2a';
+    } else if (c === 40) {
+      sb += '\\28';
+    } else if (c === 41) {
+      sb += '\\29';
+    } else if (c === 0) {
+      sb += '\\00';
+      // } else if ((c & 0xff) > 127) {
+      //   sb += `\\${to2CharHexString(c)}`;
+    } else {
+      sb += String.fromCharCode(c);
+    }
+  }
+  return sb;
+};
+
 /**
  * Parses the distinguishedName (dn) to remove any invalid characters or to
  * properly escape the request.
@@ -55,58 +79,10 @@ export const parseDistinguishedName = (dn: string): string => {
   }
 
   for (let i = 0; i < component.length; i++) {
-    const compValue = component[i].substr(3);
-    let newValue = '';
-    for (let j = 0; j < compValue.length; j++) {
-      let char = compValue.substr(j, 1);
-      switch (char) {
-        /*  backslash should be escaped, but doing it breaks the unittest
-                case '\\':
-                  char = '\\\\'
-                  break
-                 */
-        case '*':
-          char = '\\\\2A';
-          break;
-        case '(':
-          char = '\\\\28';
-          break;
-        case ')':
-          char = '\\\\29';
-          break;
-        /* pound (or hash) should be escaped, but doing it breaks the unittest
-              case '#':
-                char = '\\#'
-                break
-               */
-        case '+':
-          char = '\\+';
-          break;
-        case '<':
-          char = '\\<';
-          break;
-        case '>':
-          char = '\\>';
-          break;
-        case ';':
-          char = '\\;';
-          break;
-        case '"':
-          char = '\\"';
-          break;
-        case '=':
-          char = '\\=';
-          break;
-        case ' ':
-          if (j === 0 || j === compValue.length - 1) {
-            char = '\\ ';
-          }
-          break;
-      }
-      newValue += char;
-    }
-    component[i] = component[i].substr(0, 3) + newValue;
+    const [name, value] = component[i].split('=');
+    component[i] = `${name}=${escLdapString(value)}`;
   }
+
   return component.join(',');
 };
 
@@ -326,4 +302,17 @@ export const binarySidToStringSid = (sid: Buffer): string => {
     parts.push(sid.readUInt32LE(i)); // subauthorities
   }
   return parts.join('-');
+};
+
+export const decodeEscapeSequence = (s: string): string => s
+  .replace(/\\([0-9A-Fa-f]{2})/g, (...args) => String
+    .fromCharCode(parseInt(args[1], 16)));
+
+export const getDN = (searchEntry: SearchEntryEx): string => {
+  const dn = getAttributeSingleValue(searchEntry, 'distinguishedName')
+    || getAttributeSingleValue(searchEntry, 'dn')
+    || getAttributeSingleValue(searchEntry, 'cn')
+    || searchEntry.objectName?.toString()
+    || '';
+  return decodeEscapeSequence(dn);
 };

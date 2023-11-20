@@ -20,13 +20,20 @@ const nextColor = (): string => {
   return colors[colorIndex];
 };
 
-export const trace = (message: string) => {
+export const trace = (message: string, color?: string) => {
   if (globalLogger) {
-    globalLogger.trace(`${nextColor()}${message}\n`);
+    globalLogger.trace(`${color || nextColor()}${message}\n`);
   }
 };
 
 export const toJson = (o: any): string => {
+  const type = typeof o;
+  if (type === 'number' || type === 'boolean' || o == null) {
+    return String(o);
+  }
+  if (type === 'string') {
+    return o;
+  }
   try {
     return JSON.stringify(o, undefined, 2);
   } catch (err: Error | any) {

@@ -1,12 +1,17 @@
 import { Attribute, AttributeJson, SearchEntry, SearchEntryObject } from 'ldapjs';
 import { IAttributesObject } from './@type/i-searcher';
 
-export const hasAttribute = (seo: SearchEntry | SearchEntryObject, attrName: string): boolean => seo.attributes.some((a) => a.type === attrName);
+type TAnySEO = SearchEntry | SearchEntryObject;
+type TAnyAttr = Attribute | AttributeJson;
 
-export const getAttribute = <T = Attribute | AttributeJson> (seo: SearchEntry | SearchEntryObject, attrName: string): T | undefined => seo.attributes
-  .find((a) => a.type === attrName) as T | undefined;
+export const hasAttribute = (seo: TAnySEO, attrName: string): boolean => seo.attributes.some((a) => a.type === attrName);
 
-export const getAttributeValues = (seo: SearchEntry | SearchEntryObject, attributeName: string): string[] => {
+export const getAttribute = <T = TAnyAttr> (
+  seo: TAnySEO,
+  attrName: string,
+): T | undefined => seo.attributes.find((a) => a.type === attrName) as T | undefined;
+
+export const getAttributeValues = (seo: TAnySEO, attributeName: string): string[] => {
   const attr = getAttribute(seo, attributeName);
   const { values } = attr || {};
   return (Array.isArray(values) ? values : [values]).filter((v) => v != null) as string[];
@@ -19,7 +24,7 @@ export const getLastValue = (values: string | string[]): string => {
   return values;
 };
 
-export const getAttributeSingleValue = <T = string | undefined> (seo: SearchEntry | SearchEntryObject, attributeName: string): T => {
+export const getAttributeSingleValue = <T = string | undefined> (seo: TAnySEO, attributeName: string): T => {
   const attr = getAttribute(seo, attributeName);
   if (attr == null) {
     return undefined as T;

@@ -8,8 +8,7 @@ export const defaultEntryParser: TEntryParser = (searchEntry: SearchEntryEx, cal
     const attribute = getAttribute<Attribute>(searchEntry, type);
     if (attribute) {
       const buf = attribute.buffers[attribute.buffers.length - 1];
-      const values = [binarySidToStringSid(buf)];
-      attribute.values = values;
+      attribute.values = [binarySidToStringSid(buf)];
     }
   });
   callback(searchEntry);

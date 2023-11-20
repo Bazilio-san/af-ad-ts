@@ -6,6 +6,9 @@ import { findUser } from '../src/lib/find-users';
 import { IAdOptions } from '../src/@type/i-searcher';
 import { IUser } from '../src/models/user';
 import { IAbstractLogger } from '../src/@type/i-abstract-logger';
+import { setLogger } from '../src/logger';
+
+setLogger({ trace: console.log.bind(console) } as unknown as IAbstractLogger);
 
 const settings = require('./local/settings.local.js').findUser;
 const config = require('./local/config.local.js');
@@ -36,41 +39,56 @@ const adoOptions: IAdOptions = {
 
 describe('findUser()', () => {
   describe('#findUser()', () => {
-    ['userPrincipalName', 'sAMAccountName', 'dn', 'mail'].forEach((userAttribute) => {
+    test(`Test 1`, async () => {
+      const username = settings.username.dn;
+      let user;
+      try {
+        user = await findUser(username, adoOptions);
+      } catch (err) {
+        console.log(err);
+        return expect(false).toBeTruthy();
+      }
+      expect(user).toBeTruthy();
+    });
+
+    ['dn', 'userPrincipalName', 'sAMAccountName', 'mail'].forEach((userAttribute) => {
       const username = settings.username[userAttribute];
       test(`should return user for (${userAttribute}) ${username}`, async () => {
+        let user;
         try {
-          const user = await findUser(username, adoOptions);
-          expect(user).toBeTruthy();
+          user = await findUser(username, adoOptions);
         } catch (err) {
           console.log(err);
-          expect(err).toBeFalsy();
+          return expect(false).toBeTruthy();
         }
+        expect(user).toBeTruthy();
       });
     });
 
     test('should return undefined if the username doesn\'t exist', async () => {
+      let user;
       try {
-        const user = await findUser('!!!NON-EXISTENT USER!!!', adoOptions);
-        expect(user).toBeUndefined();
+        user = await findUser('!!!NON-EXISTENT USER!!!', adoOptions);
       } catch (err) {
         console.log(err);
-        expect(err).toBeFalsy();
+        return expect(err).toBeFalsy();
       }
+      expect(user).toBeUndefined();
     });
 
     test('should return default user attributes when not specified', async () => {
       const defaultAttributes = new Set([...DEFAULT_ATTRIBUTES.user, 'groups']);
+      let user;
       try {
-        const user = await findUser(settings.username.userPrincipalName, adoOptions) as IUser;
-        expect(user).toBeTruthy();
-        const userAttributes = Object.keys(user).sort();
-        const foundExtraAttribute = userAttributes.some((userAttr) => !defaultAttributes.has(userAttr));
-        expect(foundExtraAttribute).toBeFalsy();
+        user = await findUser(settings.username.userPrincipalName, adoOptions) as IUser;
       } catch (err) {
         console.log(err);
-        expect(err).toBeFalsy();
+        return expect(err).toBeFalsy();
       }
+      expect(user).toBeTruthy();
+      const userAttributes = Object.keys(user).sort();
+      const foundExtraAttribute = userAttributes.some((userAttr) => !defaultAttributes.has(userAttr));
+      expect(foundExtraAttribute).toBeFalsy();
     });
   });
 
@@ -78,75 +96,80 @@ describe('findUser()', () => {
     test('should use the custom opts.filter if provided', async () => {
       const opts: IAdOptions = merge({}, adoOptions, { searchOptions: { filter: settings.opts.custom } });
       const username = settings.username.userPrincipalName;
+      let user;
       try {
-        const user = await findUser(username, opts) as IUser;
-        expect(user.userPrincipalName).not.toBe(username);
+        user = await findUser(username, opts) as IUser;
       } catch (err) {
         console.log(err);
-        expect(err).toBeFalsy();
+        return expect(err).toBeFalsy();
       }
+      expect(user.userPrincipalName).not.toBe(username);
     });
 
     test(`should include groups/membership if includeMembership = ['all']`, async () => {
       const opts: IAdOptions = merge({}, adoOptions, { searchOptions: { includeMembership: ['all'] } });
       const username = settings.username.userPrincipalName;
+      let user;
       try {
-        const user = await findUser(username, opts) as IUser;
-        expect(user.groups.length).toBeGreaterThanOrEqual(settings.groups.length);
-        const cns = user.groups.map((g) => g.cn);
-        settings.groups.forEach((group: string) => {
-          expect(cns.includes(group)).toBeTruthy();
-        });
+        user = await findUser(username, opts) as IUser;
       } catch (err) {
         console.log(err);
-        expect(err).toBeFalsy();
+        return expect(err).toBeFalsy();
       }
+      expect(user.groups.length).toBeGreaterThanOrEqual(settings.groups.length);
+      const cns = user.groups.map((g) => g.cn);
+      settings.groups.forEach((group: string) => {
+        expect(cns.includes(group)).toBeTruthy();
+      });
     });
 
     test(`should include groups/membership if includeMembership = ['user']`, async () => {
       const opts: IAdOptions = merge({}, adoOptions, { searchOptions: { includeMembership: ['user'] } });
       const username = settings.username.userPrincipalName;
+      let user;
       try {
-        const user = await findUser(username, opts) as IUser;
-        expect(user.groups.length).toBeGreaterThanOrEqual(settings.groups.length);
-        const cns = user.groups.map((g) => g.cn);
-        settings.groups.forEach((group: string) => {
-          expect(cns.includes(group)).toBeTruthy();
-        });
+        user = await findUser(username, opts) as IUser;
       } catch (err) {
         console.log(err);
-        expect(err).toBeFalsy();
+        return expect(err).toBeFalsy();
       }
+      expect(user.groups.length).toBeGreaterThanOrEqual(settings.groups.length);
+      const cns = user.groups.map((g) => g.cn);
+      settings.groups.forEach((group: string) => {
+        expect(cns.includes(group)).toBeTruthy();
+      });
     });
 
     test('should return only the first user if more than one result returned', async () => {
       const opts: IAdOptions = merge({}, adoOptions, { searchOptions: { filter: settings.opts.multipleFilter } });
       const username = ''; // ignored since we're setting our own filter
+      let user;
       try {
-        const user = await findUser(username, opts) as IUser;
-        expect(user).toBeTruthy();
-        expect(Array.isArray(user)).toBeFalsy();
-        expect(Array.isArray(user)).toBeFalsy();
+        user = await findUser(username, opts) as IUser;
       } catch (err) {
         console.log(err);
-        expect(err).toBeFalsy();
+        return expect(err).toBeFalsy();
       }
+      expect(user).toBeTruthy();
+      expect(Array.isArray(user)).toBeFalsy();
+      expect(Array.isArray(user)).toBeFalsy();
     });
 
     test('should return only requested attributes', async () => {
       const opts: IAdOptions = merge({}, adoOptions, { searchOptions: { attributes: ['cn'] } });
       const username = settings.username.userPrincipalName;
+      let user;
       try {
-        const user = await findUser(username, opts) as IUser;
-        const keys = Object.keys(user).filter((k) => k !== 'groups');
-        expect(opts.searchOptions.attributes?.length).toBeGreaterThanOrEqual(keys.length);
-        keys.forEach((key) => {
-          expect(opts.searchOptions.attributes?.includes(key)).toBeTruthy();
-        });
+        user = await findUser(username, opts) as IUser;
       } catch (err) {
         console.log(err);
-        expect(err).toBeFalsy();
+        return expect(err).toBeFalsy();
       }
+      const keys = Object.keys(user).filter((k) => k !== 'groups');
+      expect(opts.searchOptions.attributes?.length).toBeGreaterThanOrEqual(keys.length);
+      keys.forEach((key) => {
+        expect(opts.searchOptions.attributes?.includes(key)).toBeTruthy();
+      });
     });
 
     test('should return unique users', async () => {

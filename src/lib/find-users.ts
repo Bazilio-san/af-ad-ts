@@ -25,24 +25,24 @@ export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
   const searchAdOptions: IAdOptions = merge({}, adOptions, { searchOptions });
   const searcherResults: SearchEntryEx[] = await asyncSearcher(searchAdOptions);
 
-  const strFilter = `filter:\n${toJson(filter)}`;
+  const optionToTrace = `searchOptions:\n${toJson(searchOptions)}`;
   if (!searcherResults?.length) {
-    trace(`No users found matching ${strFilter}`);
+    trace(`No users found matching ${optionToTrace}`);
     return [];
   }
   const fn = async (searchEntry: SearchEntryEx): Promise<IUser | undefined> => {
     if (!utils.isUserResult(searchEntry)) {
       return;
     }
-    const user = newUser(utils.pickAttributes(searchEntry, askedAttributes)); // VVQ Сократить количество атрибутов для быстрого поиска
+    const user = newUser(searchEntry, askedAttributes); // VVQ Сократить количество атрибутов для быстрого поиска
     if (utils.isIncludeGroupMembershipFor(adOptions.searchOptions, 'user')) {
-      user.groups = await asyncGetGroupMembersForDN(user.dn, adOptions);
+      user.groups = await asyncGetGroupMembersForDN(user.idn, adOptions);
     }
     return user;
   };
   let users = await Promise.all<IUser | undefined>(searcherResults.map(fn));
   users = users.filter(Boolean);
-  trace(`${users.length} user(s) found for by ${strFilter}`);
+  trace(`${users.length} user(s) found by ${optionToTrace}`);
   return users as IUser[];
 };
 
