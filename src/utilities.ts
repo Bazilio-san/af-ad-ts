@@ -1,7 +1,7 @@
 // this module consists of various utility functions that are used
 // throughout the ActiveDirectory code
 
-import { parseDN, SearchEntry, SearchOptions } from 'ldapjs';
+import { SearchEntry, SearchOptions } from 'ldapjs';
 import { IAttributesObject, ISearchOptionsEx, SearchEntryEx } from './@type/i-searcher';
 import { getAttribute, getAttributeSingleValue, getAttributeValues, hasAttribute } from './attributes';
 
@@ -78,12 +78,10 @@ export const parseDistinguishedName = (dn: string): string => {
     }
   }
 
-  for (let i = 0; i < component.length; i++) {
-    const [name, value] = component[i].split('=');
-    component[i] = `${name}=${escLdapString(value)}`;
-  }
-
-  return component.join(',');
+  return component.map((v) => {
+    const [name, value] = v.split('=');
+    return `${name}=${escLdapString(value)}`;
+  }).join(',');
 };
 
 /**
