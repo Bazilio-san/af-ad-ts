@@ -106,7 +106,7 @@ describe('findUser()', () => {
         console.log(err);
         return expect(err).toBeFalsy();
       }
-      expect(user.userPrincipalName).not.toBe(username);
+      expect(user.userPrincipalName).toBe(username);
     });
 
     test(`should include groups/membership if includeMembership = ['all']`, async () => {

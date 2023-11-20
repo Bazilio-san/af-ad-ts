@@ -6,7 +6,7 @@ import { findUsers } from '../src/lib/find-users';
 import { setLogger } from '../src/logger';
 import { IAbstractLogger } from '../src/@type/i-abstract-logger';
 
-if (1) {
+if (0) {
   setLogger({ trace: console.log.bind(console) } as unknown as IAbstractLogger);
 }
 
@@ -73,16 +73,10 @@ describe('findUsers()', () => {
       expect(users.length).toBeGreaterThanOrEqual(unitSettings.minCount);
     });
 
-    test.only(`Find last changes`, async () => {
+    test(`Find last changes`, async () => {
       const d = DateTime.now().minus({ hour: 2 }).setZone('UTC').toFormat('yyyyMMddHHmmss');
-      // const type = 'objectClass';
-      const type = 'objectCategory'
       const opts = getAdOptions({
-        filter: `(&(${type}=user)(whenChanged>=${d}.0Z))`,
-        // filter: `(&(${type}=person)(whenChanged>=${d}.0Z))`,
-        // filter: `(&(${type}=user)(whenChanged>=${d}.0Z))`,
-        // filter: `(&(${type}=person)(whenChanged>=${d}.0Z))`,
-        // filter: `(&(|(${type}=user)(${type}=person))(whenChanged>=${d}.0Z))`,
+        filter: `(whenChanged>=${d}.0Z)`,
         attributes: ['*'],
       });
       let users;
@@ -92,7 +86,7 @@ describe('findUsers()', () => {
         console.log(err);
         return expect(err).toBeFalsy();
       }
-      expect(users.length).toBe(1);
+      expect(users.length).toBeGreaterThan(10);
     });
   });
 });
