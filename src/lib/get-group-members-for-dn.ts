@@ -5,6 +5,8 @@ import { DEFAULT_ATTRIBUTES } from '../constants';
 import { IAdOptions, SearchEntryEx } from '../@type/i-searcher';
 import { toJson, trace } from '../logger';
 import { newGroup, IGroup } from '../models/group';
+import { shouldIncludeAllAttributes } from '../attributes';
+import { ensureArray } from '../core-utilities';
 
 /**
  * An interface for querying a specific group for its members and its subgroups.
@@ -22,7 +24,19 @@ export const asyncGetGroupMembersForDN = async (
   if (!dn) {
     throw new Error('No distinguishedName (dn) specified for group membership retrieval.');
   }
-  const attributes = adOptions.searchOptions.attributes || DEFAULT_ATTRIBUTES.group;
+
+  let attributes: string[] | undefined;
+  let askedAttributes: string[];
+  const cfgAttr = adOptions.searchOptions.attributes;
+  if (shouldIncludeAllAttributes(cfgAttr)) {
+    askedAttributes = ['all'];
+  } else {
+    askedAttributes = ensureArray(cfgAttr || DEFAULT_ATTRIBUTES.user);
+    attributes = utils.joinAttributes(
+      askedAttributes,
+      ['groupType'],
+    );
+  }
 
   /*
   Note:
@@ -37,10 +51,7 @@ export const asyncGetGroupMembersForDN = async (
       // filter: `(member=CN=Макаров Вячеслав Владимирович \\28vvmakarov\\29)`,
       filter: `(member=${utils.parseDistinguishedName(dn)})`,
       scope: 'sub',
-      attributes: utils.joinAttributes(
-        attributes,
-        ['groupType'],
-      ),
+      attributes,
     },
   };
 
@@ -49,7 +60,7 @@ export const asyncGetGroupMembersForDN = async (
   const searcherResults: SearchEntryEx[] = await asyncSearcher(searchAdOptions);
 
   if (!searcherResults?.length) {
-    return []; // VVQ
+    return [];
   }
 
   const fn = async (searchEntry: SearchEntryEx) => {

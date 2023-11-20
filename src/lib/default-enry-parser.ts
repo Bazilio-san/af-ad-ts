@@ -1,15 +1,35 @@
 import { Attribute } from 'ldapjs';
-import { SearchEntryEx, TEntryParser } from '../@type/i-searcher';
-import { getAttribute } from '../attributes';
-import { binarySidToStringSid } from '../utilities';
+import { IAttributesObject, SearchEntryEx, TEntryParser } from '../@type/i-searcher';
+import { attributesToObject } from '../attributes';
+import { binarySidToStringSid, getDN } from '../utilities';
 
-export const defaultEntryParser: TEntryParser = (searchEntry: SearchEntryEx, callback) => {
-  ['objectSid', 'objectGUID'].forEach((type) => {
-    const attribute = getAttribute<Attribute>(searchEntry, type);
-    if (attribute) {
+export const defaultPreEntryParser = (searchEntry: SearchEntryEx): SearchEntryEx => {
+  const { attributes } = searchEntry;
+  [
+    'objectSid',
+    'objectGUID',
+    'msExchMailboxSecurityDescriptor',
+    'msExchMailboxGuid',
+    'msExchArchiveGUID',
+  ].forEach((type) => {
+    const index = attributes.findIndex((a) => a.type === type);
+    if (index > -1) {
+      const attribute = attributes[index];
       const buf = attribute.buffers[attribute.buffers.length - 1];
-      attribute.values = [binarySidToStringSid(buf)];
+      attributes[index] = new Attribute({ type, values: [binarySidToStringSid(buf)] });
     }
   });
+  searchEntry.attributes = attributes;
+
+  searchEntry.idn = getDN(searchEntry);
+  Object.defineProperty(searchEntry, 'ao', {
+    get (): IAttributesObject {
+      return attributesToObject(this.attributes);
+    },
+  });
+  return searchEntry;
+};
+
+export const defaultPostEntryParser: TEntryParser = (searchEntry: SearchEntryEx, callback) => {
   callback(searchEntry);
 };

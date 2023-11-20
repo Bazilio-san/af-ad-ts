@@ -1,5 +1,7 @@
 import { Attribute, AttributeJson, SearchEntry, SearchEntryObject } from 'ldapjs';
-import { IAttributesObject } from './@type/i-searcher';
+import { pick, cloneDeep } from 'af-tools-ts';
+import { IAttributesObject, SearchEntryEx } from './@type/i-searcher';
+import { ensureArray } from './core-utilities';
 
 type TAnySEO = SearchEntry | SearchEntryObject;
 type TAnyAttr = Attribute | AttributeJson;
@@ -25,6 +27,7 @@ export const getLastValue = (values: string | string[]): string => {
 };
 
 export const getAttributeSingleValue = <T = string | undefined> (seo: TAnySEO, attributeName: string): T => {
+  // VVQ везде ли верно используется?
   const attr = getAttribute(seo, attributeName);
   if (attr == null) {
     return undefined as T;
@@ -32,7 +35,13 @@ export const getAttributeSingleValue = <T = string | undefined> (seo: TAnySEO, a
   return getLastValue(attr.values) as T;
 };
 
-export const attributesToObject = (searchEntry: SearchEntry): IAttributesObject => searchEntry.attributes
+/**
+ * Checks to see if any of the specified attributes are the wildcard
+ * 'all' or '*' attribute or if the attributes array is empty.
+ */
+export const shouldIncludeAllAttributes = (attributes: string | string[] | undefined): boolean => ensureArray(attributes).some((a) => a === 'all' || a === '*');
+
+export const attributesToObject = (attributes: Attribute[]): IAttributesObject => attributes
   .reduce((accum, attribute) => {
     let v = attribute.values;
     if (Array.isArray(v) && v.length === 1) {
@@ -42,7 +51,22 @@ export const attributesToObject = (searchEntry: SearchEntry): IAttributesObject 
     return accum;
   }, {});
 
-export const getSearchEntryKey = (se: SearchEntry): string => {
+/**
+ * Picks only the requested attributes from the ldap result. If a wildcard or
+ * empty result is specified, then all attributes are returned.
+ *
+ * @params searchEntry - The LDAP result.
+ * @params desiredAttributes - The desired or wanted attributes.
+ * @returns object with only the requested attributes.
+ */
+export const pickAttributes = (searchEntry: SearchEntryEx, desiredAttributes: string[]): IAttributesObject => {
+  if (shouldIncludeAllAttributes(desiredAttributes)) {
+    return cloneDeep(searchEntry.ao);
+  }
+  return cloneDeep(pick(searchEntry.ao, desiredAttributes));
+};
+
+export const getSearchEntryKey = (se: SearchEntry): string => { // VVQ
   const key = getAttributeSingleValue(se, 'dn') || getAttributeSingleValue(se, 'cn');
   return key || '';
 };

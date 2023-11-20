@@ -2,15 +2,8 @@
 // throughout the ActiveDirectory code
 
 import { SearchEntry, SearchOptions } from 'ldapjs';
-import { IAttributesObject, ISearchOptionsEx, SearchEntryEx } from './@type/i-searcher';
-import { getAttribute, getAttributeSingleValue, getAttributeValues, hasAttribute } from './attributes';
-
-export const ensureArray = (arg?: string | string[]): string[] => {
-  if (!arg) {
-    return [];
-  }
-  return Array.isArray(arg) ? arg : [arg];
-};
+import { ISearchOptionsEx } from './@type/i-searcher';
+import { getAttributeSingleValue, getAttributeValues, hasAttribute, shouldIncludeAllAttributes } from './attributes';
 
 /**
  * Gets a properly formatted LDAP compound filter. This is a very simple
@@ -99,12 +92,6 @@ export const getGroupQueryFilter = (groupName?: string): string => {
 };
 
 /**
- * Checks to see if any of the specified attributes are the wildcard
- * '*' attribute or if the attributes array is empty.
- */
-export const shouldIncludeAllAttributes = (attributes: string | string[] | undefined): boolean => ensureArray(attributes).some((a) => a === '*');
-
-/**
  * Checks to see if group membership for the specified type is enabled.
  *
  * @param opts - The options to inspect.
@@ -174,7 +161,7 @@ export const getUserQueryFilter = (username: string): string => {
 /**
  * Checks to see if the LDAP result describes a group entry.
  */
-export const isGroupResult = (searchEntry: SearchEntry): boolean => { // VVQ
+export const isGroupResult = (searchEntry: SearchEntry): boolean => {
   if (!searchEntry) {
     return false;
   }
@@ -229,31 +216,6 @@ export const joinAttributes = (...args: (string | string[])[]): string[] => {
   return [...attrSet].sort();
 };
 
-/**
- * Picks only the requested attributes from the ldap result. If a wildcard or
- * empty result is specified, then all attributes are returned.
- *
- * @params searchEntry - The LDAP result.
- * @params attributes - The desired or wanted attributes.
- * @returns object with only the requested attributes.
- */
-export const pickAttributes = (searchEntry: SearchEntry, desiredAttributes: string[]): IAttributesObject => {
-  const attrList = shouldIncludeAllAttributes(desiredAttributes)
-    ? searchEntry.attributes.map((a) => a.type)
-    : desiredAttributes;
-  return attrList.reduce((accum, attrName) => {
-    const attribute = getAttribute(searchEntry, attrName);
-    let v = attribute?.values;
-    if (v != null) {
-      if (Array.isArray(v) && v.length === 1) {
-        v = v[0];
-      }
-      accum[attrName] = v;
-    }
-    return accum;
-  }, {});
-};
-
 export const MAX_OUTPUT_LENGTH = 256;
 
 /**
@@ -306,7 +268,7 @@ export const decodeEscapeSequence = (s: string): string => s
   .replace(/\\([0-9A-Fa-f]{2})/g, (...args) => String
     .fromCharCode(parseInt(args[1], 16)));
 
-export const getDN = (searchEntry: SearchEntryEx): string => {
+export const getDN = (searchEntry: SearchEntry): string => {
   const dn = getAttributeSingleValue(searchEntry, 'distinguishedName')
     || getAttributeSingleValue(searchEntry, 'dn')
     || getAttributeSingleValue(searchEntry, 'cn')
@@ -314,3 +276,8 @@ export const getDN = (searchEntry: SearchEntryEx): string => {
     || '';
   return decodeEscapeSequence(dn);
 };
+
+// Longer, equivalent to short version
+// return new Date(n/1e4 + new Date(Date.UTC(1601,0,1)).getTime());
+// Shorter, more efficient. Uses time value for 1601-01-01 UTC
+export const ldapTsToJS = (n: number): Date => new Date((n / 1e4) - 1.16444736e13);

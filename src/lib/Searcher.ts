@@ -1,4 +1,3 @@
-import url from 'url';
 import ldap, { Client, SearchCallbackResponse, SearchReference } from 'ldapjs';
 import async from 'async';
 import { RangeAttributesParser } from './RangeAttributesParser';
@@ -7,9 +6,8 @@ import { IAdOptions, ISearchOptionsEx, SearchEntryEx, SearcherConstructorOptions
 import { PagedResultsControl } from '../@type/i-ldap';
 import { LdapSearchResult } from './LdapSearchResult';
 import { trace, toJson } from '../logger';
-import { defaultEntryParser } from './default-enry-parser';
+import { defaultPreEntryParser, defaultPostEntryParser } from './default-enry-parser';
 import { attributesToObject } from '../attributes';
-import { getDN } from '../utilities';
 
 /**
  * An interface for performing searches against an Active Directory database.
@@ -93,18 +91,6 @@ export class Searcher {
   }
 
   /**
-   * If set via the options of the query run the entry through the function.
-   * Otherwise, just feed it to the parser callback.
-   *
-   * @param entry - The search entry object. // VVQ
-   * @param callback - The callback to execute when complete.
-   */
-  entryParser (entry: SearchEntryEx, callback: Function) {
-    const { entryParser = defaultEntryParser } = this.options;
-    entryParser(entry, callback);
-  }
-
-  /**
    * Invoked when the main search has completed, including any referrals.
    */
   onSearchEnd () {
@@ -119,9 +105,9 @@ export class Searcher {
   /**
    * Invoked when the ldap.js client is returning a search entry result.
    */
-  onSearchEntry (searchEntry: SearchEntryEx) {
-    searchEntry.idn = getDN(searchEntry);
-    searchEntry.ao = attributesToObject(searchEntry);
+  onSearchEntry (searchEntry_: SearchEntryEx) {
+    const preEntryParser = this.options.preEntryParser || defaultPreEntryParser;
+    const searchEntry: SearchEntryEx = preEntryParser(searchEntry_);
 
     trace(`onSearchEntry() attributes: \n${toJson(searchEntry.ao)}`);
 
@@ -129,14 +115,15 @@ export class Searcher {
     // again to get additional items.
     this.rangeProcessing = true;
 
+    const postEntryParser = this.options.postEntryParser || defaultPostEntryParser;
+
     const rangeProcessor = new RangeAttributesParser(this);
     rangeProcessor.on('error', this.callback);
     rangeProcessor.on('done', (ldapSearchResults: LdapSearchResult[]) => {
       async.each(
         ldapSearchResults,
         (ldapSearchResult: LdapSearchResult, acb: Function) => {
-          // @ts-ignore
-          this.entryParser(ldapSearchResult.originalSearchEntry, (se: SearchEntryEx) => {
+          postEntryParser(ldapSearchResult.originalSearchEntry, (se: SearchEntryEx) => {
             this.results.set(ldapSearchResult.name(), se);
             this.rangeProcessing = false;
             acb();
@@ -186,9 +173,7 @@ export class Searcher {
       }
 
       trace(`Following LDAP referral chase at ${uri}`);
-      // TODO: use non-deprecated url parsing var URL = require('url').URL;
-      // TODO:  var myURL = new URL('http://www.example.com/foo?bar=1#main');
-      const ref = url.parse(uri);
+      const ref = new URL(uri);
       const referralBaseDn = (ref.pathname || '/').substring(1);
       const refSearcher = new Searcher({
         ...this.options,
@@ -202,7 +187,7 @@ export class Searcher {
           this.removeReferral(refSearcher);
         },
       });
-      this.pendingReferrals.add(refSearcher); // VVQ pendingReferrals
+      this.pendingReferrals.add(refSearcher);
 
       refSearcher.search();
     });
@@ -253,7 +238,7 @@ export class Searcher {
         return rangeCB(err);
       }
       res.on('searchEntry', (searchEntry: SearchEntryEx) => {
-        searchEntry.ao = attributesToObject(searchEntry);
+        searchEntry.ao = attributesToObject(searchEntry.attributes); // VVQ to define getter
         rangeCB(null, searchEntry);
       });
       res.on('searchReference', this.onReferralChase.bind(this));

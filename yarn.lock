@@ -1041,10 +1041,10 @@ af-echo-ts@^1.0.12:
   dependencies:
     af-color "^0.0.8"
 
-af-tools-ts@^1.0.69:
-  version "1.0.69"
-  resolved "https://registry.yarnpkg.com/af-tools-ts/-/af-tools-ts-1.0.69.tgz#ab941c932da65f9bc2da5df8907ae36c27e0e97c"
-  integrity sha512-QtxwT4/zKTfIw2nwicYH2ssuuTiw8TlkMjCavrAgNACDHTQl9iUIU899E1VrgjYoMGXCy45aw6eLCqiW/5cH2Q==
+af-tools-ts@^1.0.73:
+  version "1.0.73"
+  resolved "https://registry.yarnpkg.com/af-tools-ts/-/af-tools-ts-1.0.73.tgz#6529edbc88fd64b6a10d43e460caa12f03720be8"
+  integrity sha512-uUFYIEM46PxsTijGoRlsfPumAkKs+XmYNNWB9V02H8d0rdJ6X99MRfDGOvrZrix84kNA1+jPMZY9YMt+XpTtnA==
   dependencies:
     "@types/luxon" "^3.3.3"
     af-color "^0.0.8"

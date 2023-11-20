@@ -1,5 +1,5 @@
 import { SearchEntryEx } from '../@type/i-searcher';
-import { pickAttributes } from '../utilities';
+import { pickAttributes } from '../attributes';
 
 export interface IUser {
   groups: any[],

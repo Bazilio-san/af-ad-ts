@@ -3,6 +3,11 @@ import { PagedResultsControl } from './i-ldap';
 import { IAbstractLogger } from './i-abstract-logger';
 
 export interface ISearchOptionsEx extends SearchOptions {
+  /**
+   If the array is empty or undefined - use the default set of attributes
+   If one of the attributes is 'all' or '*' - all attributes
+   */
+  attributes?: string | string[] | undefined;
   includeMembership?: string[] | null,
   f?: string | Filter,
 }
@@ -77,9 +82,9 @@ export interface IAdOptions {
 
   includeDeleted?: boolean,
   defaultReferrals?: DefaultReferrals,
-  defaultAttributes?: DefaultAttributes,
 
-  entryParser?: TEntryParser,
+  preEntryParser?: (searchEntry: SearchEntryEx) => SearchEntryEx,
+  postEntryParser?: TEntryParser,
 }
 
 export type TSearchCallback = (err: any, results?: SearchEntryEx[]) => void

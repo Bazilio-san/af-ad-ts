@@ -6,6 +6,8 @@ import { DEFAULT_ATTRIBUTES } from '../constants';
 import { asyncGetGroupMembersForDN } from './get-group-members-for-dn';
 import { IAdOptions, SearchEntryEx } from '../@type/i-searcher';
 import { trace, toJson } from '../logger';
+import { shouldIncludeAllAttributes } from '../attributes';
+import { ensureArray } from '../core-utilities';
 
 const DEFAULT_USER_FILTER = '(|(objectClass=user)(objectClass=person))(!(objectClass=computer))(!(objectClass=group))';
 
@@ -13,12 +15,20 @@ const DEFAULT_USER_FILTER = '(|(objectClass=user)(objectClass=person))(!(objectC
  * Finding users within the LDAP tree.
  */
 export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
-  const askedAttributes = utils.ensureArray(adOptions.searchOptions.attributes || DEFAULT_ATTRIBUTES.user);
-  const attributes = utils.joinAttributes(
-    askedAttributes,
-    utils.getRequiredLdapAttributesForUser(adOptions.searchOptions),
-    ['objectCategory'],
-  );
+  let attributes: string[] | undefined;
+  let askedAttributes: string[];
+  const cfgAttr = adOptions.searchOptions.attributes;
+  if (shouldIncludeAllAttributes(cfgAttr)) {
+    askedAttributes = ['all'];
+  } else {
+    askedAttributes = ensureArray(cfgAttr || DEFAULT_ATTRIBUTES.user);
+    attributes = utils.joinAttributes(
+      askedAttributes,
+      utils.getRequiredLdapAttributesForUser(adOptions.searchOptions),
+      ['objectCategory'],
+    );
+  }
+
   const filter = adOptions.searchOptions?.filter || `(&${DEFAULT_USER_FILTER})`;
   const searchOptions = { attributes, filter, scope: 'sub' };
 

@@ -1,14 +1,14 @@
 /* eslint-disable no-console */
 import merge from 'merge-options';
-import pino from 'pino';
+// import pino from 'pino';
+// import { IAbstractLogger } from '../src/@type/i-abstract-logger';
+// import { setLogger } from '../src/logger';
 import { DEFAULT_ATTRIBUTES } from '../src/constants';
 import { findUser } from '../src/lib/find-users';
 import { IAdOptions } from '../src/@type/i-searcher';
 import { IUser } from '../src/models/user';
-import { IAbstractLogger } from '../src/@type/i-abstract-logger';
-import { setLogger } from '../src/logger';
 
-setLogger({ trace: console.log.bind(console) } as unknown as IAbstractLogger);
+// setLogger({ trace: console.log.bind(console) } as unknown as IAbstractLogger);
 
 const settings = require('./local/settings.local.js').findUser;
 const config = require('./local/config.local.js');
@@ -18,20 +18,17 @@ const { ldapApi, domainControllers } = config;
 const dcArray: string = domainControllers[Object.keys(domainControllers)[0]];
 const firstDC3segments: string[] = ([...dcArray[0].split('.').reverse()].splice(0, 3)).reverse();
 const baseDN: string = firstDC3segments.map((v) => `DC=${v}`).join(','); // : `DC=subDomen,DC=domen,DC=com`
-const adoOptions: IAdOptions = {
+const adOptions: IAdOptions = {
   baseDN,
   clientOptions: {
     url: dcArray,
     bindDN: ldapApi.access.user,
     bindCredentials: ldapApi.access.password,
-    log: pino({ level: 'trace' }) as unknown as IAbstractLogger,
+    // log: pino({ level: 'trace' }) as unknown as IAbstractLogger,
     reconnect: true,
   },
   searchOptions: { paged: { pageSize: 100000 } },
   includeDeleted: false,
-  // defaultAttributes: { user: [] },
-  // defaultReferrals?: DefaultReferrals,
-  // entryParser: (entry: any, raw: any, callback: Function) => { return callback(raw)},
 };
 
 // const query = 'CN=*';
@@ -39,24 +36,12 @@ const adoOptions: IAdOptions = {
 
 describe('findUser()', () => {
   describe('#findUser()', () => {
-    test(`Test 1`, async () => {
-      const username = settings.username.dn;
-      let user;
-      try {
-        user = await findUser(username, adoOptions);
-      } catch (err) {
-        console.log(err);
-        return expect(false).toBeTruthy();
-      }
-      expect(user).toBeTruthy();
-    });
-
     ['dn', 'userPrincipalName', 'sAMAccountName', 'mail'].forEach((userAttribute) => {
       const username = settings.username[userAttribute];
       test(`should return user for (${userAttribute}) ${username}`, async () => {
         let user;
         try {
-          user = await findUser(username, adoOptions);
+          user = await findUser(username, adOptions);
         } catch (err) {
           console.log(err);
           return expect(false).toBeTruthy();
@@ -68,7 +53,7 @@ describe('findUser()', () => {
     test('should return undefined if the username doesn\'t exist', async () => {
       let user;
       try {
-        user = await findUser('!!!NON-EXISTENT USER!!!', adoOptions);
+        user = await findUser('!!!NON-EXISTENT USER!!!', adOptions);
       } catch (err) {
         console.log(err);
         return expect(err).toBeFalsy();
@@ -80,7 +65,7 @@ describe('findUser()', () => {
       const defaultAttributes = new Set([...DEFAULT_ATTRIBUTES.user, 'groups']);
       let user;
       try {
-        user = await findUser(settings.username.userPrincipalName, adoOptions) as IUser;
+        user = await findUser(settings.username.userPrincipalName, adOptions) as IUser;
       } catch (err) {
         console.log(err);
         return expect(err).toBeFalsy();
@@ -92,9 +77,27 @@ describe('findUser()', () => {
     });
   });
 
+  describe('#findUser() all attributes', () => {
+    ['*', 'all', ['*'], ['all']].forEach((attributes) => {
+      test(`should return all attributes (${attributes})`, async () => {
+        const opts: IAdOptions = merge({}, adOptions, { searchOptions: { attributes } });
+        const username = settings.username.userPrincipalName;
+        let user;
+        try {
+          user = await findUser(username, opts) as IUser;
+        } catch (err) {
+          console.log(err);
+          return expect(err).toBeFalsy();
+        }
+        const keys = Object.keys(user).filter((k) => k !== 'groups');
+        expect(keys.length).toBeGreaterThanOrEqual(settings.minAttributesCount);
+      });
+    });
+  });
+
   describe('#findUser(opts)', () => {
     test('should use the custom opts.filter if provided', async () => {
-      const opts: IAdOptions = merge({}, adoOptions, { searchOptions: { filter: settings.opts.custom } });
+      const opts: IAdOptions = merge({}, adOptions, { searchOptions: { filter: settings.opts.custom } });
       const username = settings.username.userPrincipalName;
       let user;
       try {
@@ -107,7 +110,7 @@ describe('findUser()', () => {
     });
 
     test(`should include groups/membership if includeMembership = ['all']`, async () => {
-      const opts: IAdOptions = merge({}, adoOptions, { searchOptions: { includeMembership: ['all'] } });
+      const opts: IAdOptions = merge({}, adOptions, { searchOptions: { includeMembership: ['all'] } });
       const username = settings.username.userPrincipalName;
       let user;
       try {
@@ -124,7 +127,7 @@ describe('findUser()', () => {
     });
 
     test(`should include groups/membership if includeMembership = ['user']`, async () => {
-      const opts: IAdOptions = merge({}, adoOptions, { searchOptions: { includeMembership: ['user'] } });
+      const opts: IAdOptions = merge({}, adOptions, { searchOptions: { includeMembership: ['user'] } });
       const username = settings.username.userPrincipalName;
       let user;
       try {
@@ -141,7 +144,7 @@ describe('findUser()', () => {
     });
 
     test('should return only the first user if more than one result returned', async () => {
-      const opts: IAdOptions = merge({}, adoOptions, { searchOptions: { filter: settings.opts.multipleFilter } });
+      const opts: IAdOptions = merge({}, adOptions, { searchOptions: { filter: settings.opts.multipleFilter } });
       const username = ''; // ignored since we're setting our own filter
       let user;
       try {
@@ -156,7 +159,7 @@ describe('findUser()', () => {
     });
 
     test('should return only requested attributes', async () => {
-      const opts: IAdOptions = merge({}, adoOptions, { searchOptions: { attributes: ['cn'] } });
+      const opts: IAdOptions = merge({}, adOptions, { searchOptions: { attributes: ['cn'] } });
       const username = settings.username.userPrincipalName;
       let user;
       try {
@@ -177,7 +180,7 @@ describe('findUser()', () => {
       // The bug was triggered by using a common options object. The method
       // was creating a pointer to this object and then not updating its
       // internal reference on subsequent calls (because it was already defined).
-      const opts: IAdOptions = merge({}, adoOptions);
+      const opts: IAdOptions = merge({}, adOptions);
 
       const fu = async (username: string) => {
         const user = await findUser(username, opts) as IUser;
