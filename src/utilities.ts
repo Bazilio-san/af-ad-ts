@@ -158,6 +158,38 @@ export const getUserQueryFilter = (username: string): string => {
   return `(&(objectCategory=User)(|(sAMAccountName=${username})${emailSearch}(userPrincipalName=${username})))`;
 };
 
+// const DEFAULT_USER_FILTER = '&(|(objectClass=user)(objectClass=person))(!(objectClass=computer))(!(objectClass=group))';
+// const DEFAULT_USER_FILTER = '&(|(objectClass=user)(objectClass=person))(!(objectClass=computer))(!(objectClass=group))';
+
+export const CAT_USER = `(|(objectCategory=user)(objectCategory=person))`;
+/**
+ * filter:
+ *    <undefined> => <CAT_USER>
+ *    <object> => <as is>
+ *    CN=Joh* => (&<CAT_USER>(CN=Joh*))
+ *    Joh* => (&<CAT_USER>(CN=Joh*))
+ *    (|(sAMAccountName=john)(userPrincipalName=john)) => (&<CAT_USER>(|(sAMAccountName=john)(userPrincipalName=john)))
+ *    (&(objectCategory=User)(|(sAMAccountName=john)(userPrincipalName=john))) => <as is>
+ */
+export const getWildcardsUserFilter = (filter?: any): string => {
+  if (!filter) {
+    return CAT_USER;
+  }
+  if (typeof filter !== 'string') {
+    return filter;
+  }
+  if (/\((objectCategory|objectClass)=/.test(filter)) {
+    return filter;
+  }
+  if (filter.startsWith('(')) {
+    return `(&${CAT_USER}${filter})`;
+  }
+  if (/^\w+=/.test(filter)) {
+    return `(&${CAT_USER}(${filter}))`;
+  }
+  return `(&${CAT_USER}(CN=${filter}))`;
+};
+
 /**
  * Checks to see if the LDAP result describes a group entry.
  */

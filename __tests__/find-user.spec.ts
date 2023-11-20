@@ -1,14 +1,14 @@
 /* eslint-disable no-console */
 import merge from 'merge-options';
 // import pino from 'pino';
-// import { IAbstractLogger } from '../src/@type/i-abstract-logger';
-// import { setLogger } from '../src/logger';
+import { IAbstractLogger } from '../src/@type/i-abstract-logger';
+import { setLogger } from '../src/logger';
 import { DEFAULT_ATTRIBUTES } from '../src/constants';
 import { findUser } from '../src/lib/find-users';
 import { IAdOptions } from '../src/@type/i-searcher';
 import { IUser } from '../src/models/user';
 
-// setLogger({ trace: console.log.bind(console) } as unknown as IAbstractLogger);
+setLogger({ trace: console.log.bind(console) } as unknown as IAbstractLogger);
 
 const settings = require('./local/settings.local.js').findUser;
 const config = require('./local/config.local.js');

@@ -24,11 +24,13 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "outDir": "dist",
+    "allowJs": true,
+    "outDir": "dist/cjs",
     "rootDir": "./"
   },
   "include": [
     "src/**/*.ts",
+    "__tests__/**/*.local.js",
     "__tests__/**/*.ts"
   ],
   "exclude": [

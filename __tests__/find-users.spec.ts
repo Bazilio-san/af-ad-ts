@@ -1,10 +1,14 @@
 /* eslint-disable no-console */
 import merge from 'merge-options';
+import { DateTime } from 'luxon';
 import { IAdOptions, ISearchOptionsEx } from '../src/@type/i-searcher';
-// import { setLogger } from '../src/logger';
 import { findUsers } from '../src/lib/find-users';
+import { setLogger } from '../src/logger';
+import { IAbstractLogger } from '../src/@type/i-abstract-logger';
 
-// setLogger({ trace: console.log.bind(console) } as unknown as IAbstractLogger);
+if (1) {
+  setLogger({ trace: console.log.bind(console) } as unknown as IAbstractLogger);
+}
 
 const settings = require('./local/settings.local.js').findUsers;
 const config = require('./local/config.local.js');
@@ -27,32 +31,34 @@ const adOptions: IAdOptions = {
   includeDeleted: false,
 };
 
-// const query = 'CN=*';
-// const query = { filter: 'CN=*vvm*', paged: false };
 const getAdOptions = (searchOptionsPartial: ISearchOptionsEx) => merge({}, adOptions, { searchOptions: searchOptionsPartial });
 
 describe('findUsers()', () => {
   describe('#findUsers()', () => {
-    test.only('The correct number of users must be found', async () => {
-      let users;
-      const opts = getAdOptions({
-        filter: settings[1].filter,
-        paged: { pageSize: 100000 },
-        attributes: ['cn'],
+    [1, 2, 3].forEach((x) => {
+      test(`(${x}) The correct number of users must be found`, async () => {
+        let users;
+        const unitSettings = settings.exactCount[x - 1];
+        const opts = getAdOptions({
+          filter: unitSettings.filter,
+          paged: { pageSize: 100000 },
+          attributes: ['cn'],
+        });
+        try {
+          users = await findUsers(opts);
+        } catch (err) {
+          console.log(err);
+          return expect(err).toBeFalsy();
+        }
+        expect(users.length).toBe(unitSettings.count);
       });
-      try {
-        users = await findUsers(opts);
-      } catch (err) {
-        console.log(err);
-        return expect(err).toBeFalsy();
-      }
-      expect(users.length).toBe(settings[1].count);
     });
 
     test('The correct number of users must be found', async () => {
       let users;
+      const unitSettings = settings.all;
       const opts = getAdOptions({
-        filter: settings[2].filter,
+        filter: unitSettings.filter,
         paged: { pageSize: 100000 },
         attributes: ['cn'],
       });
@@ -64,12 +70,19 @@ describe('findUsers()', () => {
         return expect(err).toBeFalsy();
       }
       console.log(users.length);
-      expect(users.length).toBeGreaterThanOrEqual(settings[2].minCount);
+      expect(users.length).toBeGreaterThanOrEqual(unitSettings.minCount);
     });
 
-    test(`should find user by objectGUID`, async () => {
+    test.only(`Find last changes`, async () => {
+      const d = DateTime.now().minus({ hour: 2 }).setZone('UTC').toFormat('yyyyMMddHHmmss');
+      // const type = 'objectClass';
+      const type = 'objectCategory'
       const opts = getAdOptions({
-        filter: '(&(objectClass=*)(objectGUID=S-4-27847629191745-735892645-2805794159))',
+        filter: `(&(${type}=user)(whenChanged>=${d}.0Z))`,
+        // filter: `(&(${type}=person)(whenChanged>=${d}.0Z))`,
+        // filter: `(&(${type}=user)(whenChanged>=${d}.0Z))`,
+        // filter: `(&(${type}=person)(whenChanged>=${d}.0Z))`,
+        // filter: `(&(|(${type}=user)(${type}=person))(whenChanged>=${d}.0Z))`,
         attributes: ['*'],
       });
       let users;

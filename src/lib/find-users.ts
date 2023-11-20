@@ -8,8 +8,7 @@ import { IAdOptions, SearchEntryEx } from '../@type/i-searcher';
 import { trace, toJson } from '../logger';
 import { shouldIncludeAllAttributes } from '../attributes';
 import { ensureArray } from '../core-utilities';
-
-const DEFAULT_USER_FILTER = '(|(objectClass=user)(objectClass=person))(!(objectClass=computer))(!(objectClass=group))';
+import { getWildcardsUserFilter } from '../utilities';
 
 /**
  * Finding users within the LDAP tree.
@@ -28,8 +27,8 @@ export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
       ['objectCategory'],
     );
   }
+  const filter = getWildcardsUserFilter(adOptions.searchOptions.filter);
 
-  const filter = adOptions.searchOptions?.filter || `(&${DEFAULT_USER_FILTER})`;
   const searchOptions = { attributes, filter, scope: 'sub' };
 
   const searchAdOptions: IAdOptions = merge({}, adOptions, { searchOptions });
@@ -57,7 +56,7 @@ export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
 };
 
 export const findUser = async (username: string, adOptions: IAdOptions): Promise<IUser | undefined> => {
-  const filter = adOptions.searchOptions.filter || utils.getUserQueryFilter(username);
+  const filter = username ? utils.getUserQueryFilter(username) : getWildcardsUserFilter(adOptions.searchOptions.filter);
   const searchAdOptions: IAdOptions = merge({}, adOptions, { searchOptions: { filter } });
   trace(`findUser(${username}, \n${toJson(filter)})`);
   const users = await findUsers(searchAdOptions);

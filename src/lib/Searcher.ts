@@ -203,6 +203,7 @@ export class Searcher {
     this.traceAttributes('Querying active directory (%dn)');
 
     this.client.search(this.baseDN, this.searchOptions, this.controls, (err, searchCallbackResponse: SearchCallbackResponse) => {
+      trace(`Search by filter ${this.searchOptions.filter?.toString()}`);
       if (err) {
         this.callback(err);
         return;
