@@ -2,8 +2,8 @@
 import merge from 'merge-options';
 import { DateTime } from 'luxon';
 import { IAdOptions, ISearchOptionsEx } from '../src/@type/i-searcher';
-import { findUsers } from '../src/lib/find-users';
-import { setLogger } from '../src/logger';
+import { findUsers } from '../src/main/find-users';
+import { setLogger } from '../src/lib/logger';
 import { IAbstractLogger } from '../src/@type/i-abstract-logger';
 
 if (0) {

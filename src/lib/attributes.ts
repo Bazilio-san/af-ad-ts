@@ -1,6 +1,6 @@
 import { Attribute, AttributeJson, SearchEntry, SearchEntryObject } from 'ldapjs';
 import { pick, cloneDeep } from 'af-tools-ts';
-import { IAttributesObject, SearchEntryEx } from './@type/i-searcher';
+import { IAttributesObject, SearchEntryEx } from '../@type/i-searcher';
 import { ensureArray } from './core-utilities';
 
 type TAnySEO = SearchEntry | SearchEntryObject;

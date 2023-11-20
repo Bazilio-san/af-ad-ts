@@ -1,5 +1,5 @@
-import * as utils from '../src/utilities';
-import { CAT_USER } from '../src/utilities';
+import * as utils from '../src/lib/utilities';
+import { CAT_USER } from '../src/lib/utilities';
 
 describe('Utility functions', () => {
   describe('parseDistinguishedName', () => {

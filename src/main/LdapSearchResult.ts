@@ -1,5 +1,5 @@
 import { RangeAttribute } from './RangeAttribute';
-import { getAttributeSingleValue } from '../attributes';
+import { getAttributeSingleValue } from '../lib/attributes';
 import { IAttributesObject, SearchEntryEx } from '../@type/i-searcher';
 
 /**

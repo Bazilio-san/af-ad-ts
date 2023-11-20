@@ -2,8 +2,8 @@ import { EventEmitter } from 'events';
 import { RangeAttribute } from './RangeAttribute';
 import { LdapSearchResult } from './LdapSearchResult';
 import { Searcher } from './Searcher';
-import { trace, toJson } from '../logger';
-import { getAttributeValues, getSearchEntryKey } from '../attributes';
+import { trace, toJson } from '../lib/logger';
+import { getAttributeValues, getSearchEntryKey } from '../lib/attributes';
 import { ISearchOptionsEx, SearchEntryEx } from '../@type/i-searcher';
 
 /**

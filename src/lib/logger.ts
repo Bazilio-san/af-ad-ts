@@ -1,5 +1,5 @@
 import { lBlue, magenta } from 'af-color';
-import { IAbstractLogger } from './@type/i-abstract-logger';
+import { IAbstractLogger } from '../@type/i-abstract-logger';
 
 let globalLogger: {
   trace: Function;

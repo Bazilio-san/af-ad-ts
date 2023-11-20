@@ -5,9 +5,9 @@ import { DEFAULT_PAGE_SIZE } from '../constants';
 import { IAdOptions, ISearchOptionsEx, SearchEntryEx, SearcherConstructorOptions, TSearchCallback } from '../@type/i-searcher';
 import { PagedResultsControl } from '../@type/i-ldap';
 import { LdapSearchResult } from './LdapSearchResult';
-import { trace, toJson } from '../logger';
+import { trace, toJson } from '../lib/logger';
 import { defaultPreEntryParser, defaultPostEntryParser } from './default-enry-parser';
-import { attributesToObject } from '../attributes';
+import { attributesToObject } from '../lib/attributes';
 
 /**
  * An interface for performing searches against an Active Directory database.

@@ -1,7 +1,7 @@
 import { Attribute } from 'ldapjs';
 import { IAttributesObject, SearchEntryEx, TEntryParser } from '../@type/i-searcher';
-import { attributesToObject } from '../attributes';
-import { binarySidToStringSid, getDN } from '../utilities';
+import { attributesToObject } from '../lib/attributes';
+import { binarySidToStringSid, getDN } from '../lib/utilities';
 
 export const defaultPreEntryParser = (searchEntry: SearchEntryEx): SearchEntryEx => {
   const { attributes } = searchEntry;

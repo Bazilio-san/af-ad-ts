@@ -2,7 +2,7 @@
 // throughout the ActiveDirectory code
 
 import { SearchEntry, SearchOptions } from 'ldapjs';
-import { ISearchOptionsEx } from './@type/i-searcher';
+import { ISearchOptionsEx } from '../@type/i-searcher';
 import { getAttributeSingleValue, getAttributeValues, hasAttribute, shouldIncludeAllAttributes } from './attributes';
 
 /**
