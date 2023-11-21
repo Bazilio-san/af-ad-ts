@@ -31,7 +31,7 @@ const adOptions: IAdOptions = {
   includeDeleted: false,
 };
 
-const getAdOptions = (searchOptionsPartial: ISearchOptionsEx) => merge({}, adOptions, { searchOptions: searchOptionsPartial });
+const getAdOptions = (searchOptionsPartial: ISearchOptionsEx, extra: any = {}) => merge({}, adOptions, { searchOptions: searchOptionsPartial }, extra);
 
 describe('findUsers()', () => {
   describe('#findUsers()', () => {
@@ -54,11 +54,12 @@ describe('findUsers()', () => {
       });
     });
 
-    test('The correct number of users must be found', async () => {
+    test('CN=*', async () => {
       let users;
       const unitSettings = settings.all;
       const opts = getAdOptions({
-        filter: unitSettings.filter,
+        filter: 'CN=*',
+        // filter: '(objectClass=*)',
         paged: { pageSize: 100000 },
         attributes: ['cn'],
       });
@@ -69,14 +70,34 @@ describe('findUsers()', () => {
         console.log(err);
         return expect(err).toBeFalsy();
       }
-      console.log(users.length);
+      console.log(`ALL: ${users.length} users`); // 14807
+      expect(users.length).toBeGreaterThanOrEqual(unitSettings.minCount);
+    });
+
+    test('includeDeleted', async () => {
+      let users;
+      const unitSettings = settings.deleted;
+      const opts = getAdOptions({
+        filter: '(objectClass=*)',
+        paged: { pageSize: 100000 },
+        attributes: ['cn'],
+        // scope: 'one',
+      }, { includeDeleted: true });
+
+      try {
+        users = await findUsers(opts);
+      } catch (err) {
+        console.log(err);
+        return expect(err).toBeFalsy();
+      }
+      console.log(`include Deleted: ${users.length} users`); // 14807
       expect(users.length).toBeGreaterThanOrEqual(unitSettings.minCount);
     });
 
     test(`Find last changes`, async () => {
-      const d = DateTime.now().minus({ hour: 2 }).setZone('UTC').toFormat('yyyyMMddHHmmss');
+      const dt = DateTime.now().setZone('UTC').minus({ hour: 1 });
       const opts = getAdOptions({
-        filter: `(whenChanged>=${d}.0Z)`,
+        filter: `(whenChanged>=${dt.toFormat('yyyyMMddHHmmss')}.0Z)`,
         attributes: ['*'],
       });
       let users;
@@ -86,6 +107,7 @@ describe('findUsers()', () => {
         console.log(err);
         return expect(err).toBeFalsy();
       }
+      console.log(`changes from ${dt.toISO()}: ${users.length} users`);
       expect(users.length).toBeGreaterThan(10);
     });
   });

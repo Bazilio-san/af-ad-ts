@@ -1,5 +1,5 @@
 import { SearchOptions, ClientOptions, SearchEntry, Filter } from 'ldapjs';
-import { PagedResultsControl } from './i-ldap';
+import { Control } from './i-ldap';
 import { IAbstractLogger } from './i-abstract-logger';
 
 export interface ISearchOptionsEx extends SearchOptions {
@@ -78,7 +78,7 @@ export interface IAdOptions {
     log?: IAbstractLogger,
   }
   searchOptions: ISearchOptionsEx,
-  controls?: PagedResultsControl[],
+  controls?: Control[],
 
   includeDeleted?: boolean,
   defaultReferrals?: DefaultReferrals,

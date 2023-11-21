@@ -1,3 +1,4 @@
+/* eslint-disable no-bitwise */
 // this module consists of various utility functions that are used
 // throughout the ActiveDirectory code
 
@@ -147,7 +148,6 @@ export const getUserQueryFilter = (username: string): string => {
   if (!username) {
     return '(objectCategory=User)';
   }
-  // username = escLdapString(username);
   if (isDistinguishedName(username)) {
     return `(&(objectCategory=User)(distinguishedName=${parseDistinguishedName(username)}))`;
   }
@@ -184,10 +184,13 @@ export const getWildcardsUserFilter = (filter?: any): string => {
   if (filter.startsWith('(')) {
     return `(&${CAT_USER}${filter})`;
   }
+  let name: string = 'CN';
+  let value: string = filter;
   if (/^\w+=/.test(filter)) {
-    return `(&${CAT_USER}(${filter}))`;
+    ([name, value] = filter.split('='));
   }
-  return `(&${CAT_USER}(CN=${filter}))`;
+  // value = escLdapString(value);
+  return `(&${CAT_USER}(${name}=${value}))`;
 };
 
 /**

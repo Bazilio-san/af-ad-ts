@@ -1,15 +1,19 @@
 import { lBlue, magenta } from 'af-color';
-import { IAbstractLogger } from '../@type/i-abstract-logger';
 
 let globalLogger: {
   trace: Function;
 };
 
-export const setLogger = (logger: IAbstractLogger) => {
+export const setLogger = (logger?: any) => {
   if (logger?.trace) {
     globalLogger = logger;
   } else if (logger?.silly) {
     globalLogger = { trace: logger.silly.bind(logger) };
+  } else if (logger) {
+    globalLogger = { trace: logger };
+  } else {
+    // eslint-disable-next-line no-console
+    globalLogger = { trace: console.log.bind(console) };
   }
 };
 

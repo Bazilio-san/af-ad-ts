@@ -5,3 +5,9 @@ export interface PagedResultsControl {
   parse: Function,
   type: string,
 }
+
+export interface Control {
+  type: string,
+  criticality: boolean,
+  value: string | Buffer,
+}

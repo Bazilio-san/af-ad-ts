@@ -1,13 +1,15 @@
 import ldap, { Client, SearchCallbackResponse, SearchReference } from 'ldapjs';
 import async from 'async';
+import { bg, black, rs } from 'af-color';
 import { RangeAttributesParser } from './RangeAttributesParser';
 import { DEFAULT_PAGE_SIZE } from '../constants';
 import { IAdOptions, ISearchOptionsEx, SearchEntryEx, SearcherConstructorOptions, TSearchCallback } from '../@type/i-searcher';
-import { PagedResultsControl } from '../@type/i-ldap';
+import { Control } from '../@type/i-ldap';
 import { LdapSearchResult } from './LdapSearchResult';
 import { trace, toJson } from '../lib/logger';
 import { defaultPreEntryParser, defaultPostEntryParser } from './default-enry-parser';
 import { attributesToObject } from '../lib/attributes';
+import { EControl, getControl } from './get-control';
 
 /**
  * An interface for performing searches against an Active Directory database.
@@ -33,7 +35,7 @@ export class Searcher {
 
   private client: Client;
 
-  private readonly controls: PagedResultsControl[];
+  private readonly controls: Control[];
 
   constructor (options: SearcherConstructorOptions) {
     this.options = options;
@@ -65,7 +67,7 @@ export class Searcher {
     // @ts-ignore
     const pagedControls = this.controls.filter((control) => control instanceof ldap.PagedResultsControl);
 
-    if (!searchOptions.paged && pagedControls.length === 0) {
+    if (searchOptions.paged === undefined && pagedControls.length === 0) {
       this.traceAttributes('Adding PagedResultControl to search (%dn)');
       // @ts-ignore
       const size = searchOptions.paged?.pageSize || DEFAULT_PAGE_SIZE;
@@ -79,8 +81,7 @@ export class Searcher {
       if (deletedControls.length === 0) {
         this.traceAttributes(`Adding ShowDeletedOidControl(${deletedType}) to search (%dn)`);
         // @ts-ignore
-        this.controls.push(new ldap.Control({ type: deletedType, criticality: true }));
-        // VVQ ldap.Control ?
+        this.controls.push(getControl(EControl.DELETED));
       }
     }
   }
@@ -202,8 +203,9 @@ export class Searcher {
   search () {
     this.traceAttributes('Querying active directory (%dn)');
 
+    trace(`Search by filter ${black}${bg.lYellow}${this.searchOptions.f}${rs}`);
     this.client.search(this.baseDN, this.searchOptions, this.controls, (err, searchCallbackResponse: SearchCallbackResponse) => {
-      trace(`Search by filter ${this.searchOptions.filter?.toString()}`);
+      trace(`Search by [prepared] filter ${black}${bg.lGreen}${this.searchOptions.filter?.toString()}${rs}`);
       if (err) {
         this.callback(err);
         return;
