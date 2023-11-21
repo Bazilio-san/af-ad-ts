@@ -96,28 +96,3 @@ export interface SearcherConstructorOptions extends IAdOptions {
    */
   callback: TSearchCallback,
 }
-
-export type IFoundAttributes = {
-  dn: string,
-  cn?: string,
-  sn?: string,
-  description?: string,
-  givenName?: string,
-  initials?: string,
-  distinguishedName?: string,
-  whenCreated?: string,
-  displayName?: string,
-  userAccountControl?: string,
-  employeeID?: string,
-  pwdLastSet?: string,
-  sAMAccountName?: string,
-  userPrincipalName?: string,
-  lockoutTime?: string,
-  objectCategory?: string,
-  objectClass?: string[],
-  mail?: string
-  objectSID?: string,
-  comment?: string,
-
-  [propName: string]: string | string[] | undefined,
-};
