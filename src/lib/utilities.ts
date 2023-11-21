@@ -27,20 +27,24 @@ export const getCompoundFilter = (filter: string): string | boolean => {
  */
 export const isDistinguishedName = (value: string): boolean => /(([^=]+=.+),?)+/gi.test(String(value));
 
-export const escLdapString = (s: string): string => {
+export interface IEscLdapStringOptions {
+  skipAsterisk: boolean,
+}
+
+export const escLdapString = (s: string, options?: IEscLdapStringOptions): string => {
   if (s == null) return '';
   let sb = '';
   for (let i = 0; i < s.length; i++) {
     const c = s.charCodeAt(i);
-    if (c === 92) {
+    if (c === 92) { // "\"
       sb += '\\5c';
-    } else if (c === 42) {
+    } else if (c === 42 && !options?.skipAsterisk) { // "*"
       sb += '\\2a';
-    } else if (c === 40) {
+    } else if (c === 40) { // "("
       sb += '\\28';
-    } else if (c === 41) {
+    } else if (c === 41) { // ")"
       sb += '\\29';
-    } else if (c === 0) {
+    } else if (c === 0) { // ")"
       sb += '\\00';
       // } else if ((c & 0xff) > 127) {
       //   sb += `\\${to2CharHexString(c)}`;
@@ -189,7 +193,7 @@ export const getWildcardsUserFilter = (filter?: any): string => {
   if (/^\w+=/.test(filter)) {
     ([name, value] = filter.split('='));
   }
-  // value = escLdapString(value);
+  // value = escLdapString(value, { skipAsterisk: true });
   return `(&${CAT_USER}(${name}=${value}))`;
 };
 

@@ -13,7 +13,7 @@ import { ensureArray } from '../lib/core-utilities';
  *
  * dn - The DN of the group to query.
  */
-export const asyncGetGroupMembersForDN = async (
+export const getGroupMembersForDN = async (
   dn: string,
   adOptions: IAdOptions,
   hash: Map<string, IGroup> = new Map(),
@@ -71,7 +71,7 @@ export const asyncGetGroupMembersForDN = async (
     trace(`Adding group "${key}" to "${dn}"`);
     const g = newGroup(searchEntry);
     hash.set(key, g);
-    const nestedGroups = await asyncGetGroupMembersForDN(key, adOptions, hash);
+    const nestedGroups = await getGroupMembersForDN(key, adOptions, hash);
     nestedGroups.forEach((ng) => {
       const newKey = ng.idn;
       if (!hash.has(newKey)) {

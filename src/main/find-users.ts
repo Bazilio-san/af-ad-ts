@@ -3,7 +3,7 @@ import * as utils from '../lib/utilities';
 import { IUser, newUser } from '../models/user';
 import { asyncSearcher } from './Searcher';
 import { DEFAULT_ATTRIBUTES } from '../constants';
-import { asyncGetGroupMembersForDN } from './get-group-members-for-dn';
+import { getGroupMembersForDN } from './get-group-members-for-dn';
 import { IAdOptions, SearchEntryEx } from '../@type/i-searcher';
 import { trace, toJson } from '../lib/logger';
 import { shouldIncludeAllAttributes } from '../lib/attributes';
@@ -45,7 +45,7 @@ export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
     }
     const user = newUser(searchEntry, askedAttributes); // VVQ Сократить количество атрибутов для быстрого поиска
     if (utils.isIncludeGroupMembershipFor(adOptions.searchOptions, 'user')) {
-      user.groups = await asyncGetGroupMembersForDN(user.idn, adOptions);
+      user.groups = await getGroupMembersForDN(user.idn, adOptions);
     }
     return user;
   };
