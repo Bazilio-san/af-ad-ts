@@ -36,3 +36,5 @@ export {
   DefaultReferrals,
   IAttributesObject,
 } from './@type/i-searcher';
+
+export { setLogger } from './lib/logger';
