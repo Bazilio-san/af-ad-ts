@@ -1,11 +1,7 @@
 /* eslint-disable no-console */
 import merge from 'merge-options';
 // import pino from 'pino';
-import { setLogger } from '../src/lib/logger';
-import { DEFAULT_ATTRIBUTES } from '../src/constants';
-import { findUser } from '../src/main/find-users';
-import { IAdOptions } from '../src/@type/i-searcher';
-import { IUser } from '../src/models/user';
+import { DEFAULT_ATTRIBUTES, findUser, IAdOptions, IUser, setLogger } from '../src';
 
 if (1) {
   setLogger();

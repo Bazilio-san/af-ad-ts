@@ -1,10 +1,7 @@
 /* eslint-disable no-console */
 import merge from 'merge-options';
 import { DateTime } from 'luxon';
-import { IAdOptions, ISearchOptionsEx } from '../src/@type/i-searcher';
-import { findUsers } from '../src/main/find-users';
-import { setLogger } from '../src/lib/logger';
-import { IAbstractLogger } from '../src/@type/i-abstract-logger';
+import { findUsers, IAbstractLogger, IAdOptions, ISearchOptionsEx, setLogger } from "../src";
 
 if (0) {
   setLogger({ trace: console.log.bind(console) } as unknown as IAbstractLogger);

@@ -37,4 +37,6 @@ export {
   IAttributesObject,
 } from './@type/i-searcher';
 
+export { IAbstractLogger } from './@type/i-abstract-logger';
+
 export { setLogger } from './lib/logger';
