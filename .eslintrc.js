@@ -1,7 +1,7 @@
 module.exports = {
   root: true,
   extends: [
-    'eslint-config-af-22',
+    'eslint-config-af-24',
   ],
   env: {
     browser: true,
