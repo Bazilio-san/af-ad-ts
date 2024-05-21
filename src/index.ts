@@ -3,6 +3,8 @@ export {
   findUser,
 } from './main/find-users';
 
+export { getThumb } from './main/get-thumbnail-photo';
+
 export {
   EControl,
   getControl,
