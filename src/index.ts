@@ -20,6 +20,7 @@ export { IUser, newUser } from './models/user';
 export { DEFAULT_ATTRIBUTES, DEFAULT_REFERRALS } from './constants';
 export { getWildcardsUserFilter } from './lib/utilities';
 export { suggest } from './main/suggest';
+export { getUserInfoByDomainLogin } from './main/get-user-info-by-domain-login';
 
 export {
   Control,

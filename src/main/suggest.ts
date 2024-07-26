@@ -1,3 +1,4 @@
+/* eslint-disable no-bitwise */
 import { Client, SearchOptions } from 'ldapts';
 
 /**
@@ -20,7 +21,7 @@ export const suggest = async (arg: {
     attributes = [
       'sAMAccountName',
       'displayName',
-      'userPrincipalName',
+      'mail',
     ],
   } = arg;
   attributes.push('userAccountControl');
@@ -38,8 +39,7 @@ export const suggest = async (arg: {
     };
     const { searchEntries } = await client.search(arg.baseDN, options);
     searchEntries.map((item: any) => {
-      // eslint-disable-next-line no-bitwise
-      item.isDisabled = ((Number(item.userAccountControl) || 0) & 2) === 2;
+      item.enabled = ((Number(item.userAccountControl) || 0) & 2) !== 2;
       return item;
     });
 
@@ -51,4 +51,3 @@ export const suggest = async (arg: {
     await client.unbind();
   }
 };
-// !(useraccountcontrol:1.2.840.113556.1.4.803:=2)
