@@ -39,7 +39,6 @@ const shortAttributes = [
 ];
 
 export const getUserInfoByDomainLogin = async <T extends IUserInfoShort = IUserInfoFull> (arg: {
-  domain: string,
   username: string,
   requestType?: 'full' | 'short',
   ldap: {
@@ -50,7 +49,7 @@ export const getUserInfoByDomainLogin = async <T extends IUserInfoShort = IUserI
   }
 })
   : Promise<T | undefined> => {
-  const { domain, username, requestType = 'short', ldap } = arg || {};
+  const { username, requestType = 'short', ldap } = arg || {};
   const isFull = requestType === 'full';
 
   const client = new Client({ url: ldap.url });

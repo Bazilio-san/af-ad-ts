@@ -11,8 +11,12 @@ describe('Suggest', () => {
     const result = await suggest(cases[1]);
     expect(result.length).toBeGreaterThanOrEqual(2);
   });
-  test('getUserInfoByDomainLogin', async () => {
+  test('getUserInfoByDomainLogin [full]', async () => {
     const result = await getUserInfoByDomainLogin(cases[2]);
     expect(result?.sAMAccountName).toBe(cases[2].username);
+  });
+  test('getUserInfoByDomainLogin [short]', async () => {
+    const result = await getUserInfoByDomainLogin(cases[3]);
+    expect(result?.sAMAccountName).toBe(cases[3].username);
   });
 });
