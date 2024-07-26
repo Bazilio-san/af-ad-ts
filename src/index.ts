@@ -18,6 +18,7 @@ export { Searcher, asyncSearcher } from './main/Searcher';
 export { IGroup, newGroup } from './models/group';
 export { IUser, newUser } from './models/user';
 export { DEFAULT_ATTRIBUTES, DEFAULT_REFERRALS } from './constants';
+export { getWildcardsUserFilter } from './lib/utilities';
 
 export {
   Control,
