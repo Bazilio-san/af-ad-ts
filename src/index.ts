@@ -23,6 +23,11 @@ export { suggest } from './main/suggest';
 export { getUserInfoByDomainLogin } from './main/get-user-info-by-domain-login';
 
 export {
+  IUserInfoFull,
+  IUserInfoShort,
+} from './@type/i-ldap-api';
+
+export {
   Control,
   SearchEntry,
   SearchReference,
