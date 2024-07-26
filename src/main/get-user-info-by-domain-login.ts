@@ -18,7 +18,6 @@ const fullAttributes = [
   'telephoneNumber',
   'company',
   'mobile',
-  'domain',
   'name',
   'samAccountName',
   'displayName',
