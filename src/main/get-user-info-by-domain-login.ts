@@ -64,6 +64,13 @@ export const getUserInfoByDomainLogin = async <T extends IUserInfoShort = IUserI
       attributes,
       sizeLimit: 1,
     };
+    if (isFull) {
+      options.explicitBufferAttributes = [
+        'thumbnailPhoto',
+        'photo',
+        'jpegPhoto',
+      ];
+    }
     const { searchEntries } = await client.search(ldap.baseDN, options);
     user = searchEntries[0] as unknown as T;
     if (!user) {
