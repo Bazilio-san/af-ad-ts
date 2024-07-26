@@ -319,4 +319,9 @@ export const getDN = (searchEntry: SearchEntry): string => {
 // Longer, equivalent to short version
 // return new Date(n/1e4 + new Date(Date.UTC(1601,0,1)).getTime());
 // Shorter, more efficient. Uses time value for 1601-01-01 UTC
-export const ldapTsToJS = (n: number): Date => new Date((n / 1e4) - 1.16444736e13);
+export const ldapTsToJS = (v: string): number | null => {
+  if (v == null || /\D/.test(String(v)) || v === '0' || v === '9223372036854775807') {
+    return null;
+  }
+  return +(new Date((+v / 10000) - 1.16444736e13));
+};

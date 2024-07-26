@@ -1,6 +1,6 @@
 {
   "name": "af-ad-ts",
-  "version": "0.0.45",
+  "version": "0.0.46",
   "description": "A highly specialized function library",
   "main": "./dist/cjs/src/index.js",
   "module": "./dist/esm/src/index.js",

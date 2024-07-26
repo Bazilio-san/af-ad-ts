@@ -1,6 +1,7 @@
 /* eslint-disable no-bitwise,no-useless-catch */
 import { Client, SearchOptions } from 'ldapts';
 import { IUserInfoFull, IUserInfoShort } from '../@type/i-ldap-api';
+import { ldapTsToJS } from '../lib/utilities';
 
 const fullAttributes = [
   'sAMAccountName',
@@ -13,10 +14,8 @@ const fullAttributes = [
   'employeeId',
   'lastLogon',
   'userPrincipalName',
-  'memberOf',
   'workPhone',
   'telephoneNumber',
-  'distinguishedName',
   'company',
   'mobile',
   'domain',
@@ -41,6 +40,7 @@ const shortAttributes = [
 export const getUserInfoByDomainLogin = async <T extends IUserInfoShort = IUserInfoFull> (arg: {
   username: string,
   requestType?: 'full' | 'short',
+  withMembers?: boolean,
   ldap: {
     username: string,
     password: string,
@@ -49,13 +49,13 @@ export const getUserInfoByDomainLogin = async <T extends IUserInfoShort = IUserI
   }
 })
   : Promise<T | undefined> => {
-  const { username, requestType = 'short', ldap } = arg || {};
+  const { username, requestType = 'short', ldap, withMembers } = arg || {};
   const isFull = requestType === 'full';
 
   const client = new Client({ url: ldap.url });
-  const attributes = [...(isFull ? fullAttributes : shortAttributes)];
+  const attributes: string[] = [...(isFull ? fullAttributes : shortAttributes)];
   attributes.push('userAccountControl');
-  let user: T;
+  let user: IUserInfoFull;
   try {
     await client.bind(ldap.username, ldap.password);
     const options: SearchOptions = {
@@ -70,9 +70,12 @@ export const getUserInfoByDomainLogin = async <T extends IUserInfoShort = IUserI
         'photo',
         'jpegPhoto',
       ];
+      if (withMembers) {
+        attributes.push('memberOf');
+      }
     }
     const { searchEntries } = await client.search(ldap.baseDN, options);
-    user = searchEntries[0] as unknown as T;
+    user = searchEntries[0] as unknown as IUserInfoFull;
     if (!user) {
       return undefined;
     }
@@ -85,5 +88,15 @@ export const getUserInfoByDomainLogin = async <T extends IUserInfoShort = IUserI
   if (user.sAMAccountName?.toLowerCase() !== username.toLowerCase()) {
     throw new Error('Username does not match');
   }
-  return user;
+  user.mail = user.mail || user.userPrincipalName;
+  if (!isFull) {
+    delete (user as any).userPrincipalName;
+    delete (user as any).dn;
+  }
+  delete user.userAccountControl;
+
+  if (typeof user.lastLogon === 'string') {
+    user.lastLogon = ldapTsToJS(user.lastLogon);
+  }
+  return user as unknown as T;
 };
