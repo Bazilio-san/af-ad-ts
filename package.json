@@ -1,6 +1,6 @@
 {
   "name": "af-ad-ts",
-  "version": "0.0.37",
+  "version": "0.0.38",
   "description": "A highly specialized function library",
   "main": "./dist/cjs/src/index.js",
   "module": "./dist/esm/src/index.js",
@@ -21,6 +21,7 @@
     "async": "^3.2.5",
     "eslint-config-af-24": "^2.4.2",
     "ldapjs": "^3.0.6",
+    "ldapts": "^7.1.0",
     "merge-options": "^3.0.4"
   },
   "devDependencies": {
