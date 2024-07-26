@@ -23,7 +23,6 @@ export interface IUserInfoFull extends IUserInfoShort {
   mobile: string, //
   domain: string,
   name: string, // Губаридзен Екатерина Владимировна (gubaridzen)
-  samAccountName: string, // gubaridzen
   description: string, // Региональный пользователь. Магнитогорск.
   thumbnailPhoto: string,
   photo: string,
