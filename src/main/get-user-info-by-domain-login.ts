@@ -45,13 +45,14 @@ export const getUserInfoByDomainLogin = async <T extends IUserInfoShort = IUserI
     password: string,
     url: string,
     baseDN: string,
+    timeoutMillis?: number
   }
 })
   : Promise<T | undefined> => {
   const { username, requestType = 'short', ldap, withMembers } = arg || {};
   const isFull = requestType === 'full';
 
-  const client = new Client({ url: ldap.url });
+  const client = new Client({ url: ldap.url, timeout: ldap.timeoutMillis });
   const attributes: string[] = [...(isFull ? fullAttributes : shortAttributes)];
   attributes.push('userAccountControl');
   let user: IUserInfoFull;
