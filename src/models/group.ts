@@ -2,8 +2,10 @@ import { SearchEntryEx } from '../@type/i-searcher';
 
 export interface IGroup {
   idn: string,
+  cn?: string,
+  distinguishedName?: string,
 
-  [propName: string]: string,
+  [propName: string]: string | undefined,
 }
 
 export const newGroup = (searchEntry: SearchEntryEx): IGroup => {

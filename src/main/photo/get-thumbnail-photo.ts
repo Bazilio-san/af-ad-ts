@@ -1,6 +1,6 @@
 import merge from 'merge-options';
-import { asyncSearcher } from './Searcher';
-import { IAdOptions, SearchEntryEx } from '../@type/i-searcher';
+import { asyncSearcher } from '../lib/Searcher';
+import { IAdOptions, SearchEntryEx } from '../../@type/i-searcher';
 
 export const getThumbnailPhoto = async (adOptions: IAdOptions, domain: string, username: string): Promise<Buffer | undefined> => {
   const searchOptions = {
@@ -10,5 +10,6 @@ export const getThumbnailPhoto = async (adOptions: IAdOptions, domain: string, u
   };
   const searchAdOptions: IAdOptions = merge({}, adOptions, { searchOptions });
   const searcherResults: SearchEntryEx[] = await asyncSearcher(searchAdOptions);
-  return searcherResults[0]?.attributes.find((attr) => attr.type === 'thumbnailPhoto')?.buffers?.[0];
+  const attr = searcherResults[0]?.attributes.find((att) => att.type === 'thumbnailPhoto');
+  return attr?.values?.[0] as Buffer;
 };

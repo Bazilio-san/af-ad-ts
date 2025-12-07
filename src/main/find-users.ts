@@ -1,9 +1,9 @@
 import merge from 'merge-options';
 import * as utils from '../lib/utilities';
 import { IUser, newUser } from '../models/user';
-import { asyncSearcher } from './Searcher';
+import { asyncSearcher } from './lib/Searcher';
 import { DEFAULT_ATTRIBUTES } from '../constants';
-import { getGroupMembersForDN } from './get-group-members-for-dn';
+import { getGroupMembersForDN } from './group/get-group-members-for-dn';
 import { IAdOptions, SearchEntryEx } from '../@type/i-searcher';
 import { trace, toJson } from '../lib/logger';
 import { shouldIncludeAllAttributes } from '../lib/attributes';
@@ -19,6 +19,8 @@ export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
   const cfgAttr = adOptions.searchOptions.attributes;
   if (shouldIncludeAllAttributes(cfgAttr)) {
     askedAttributes = ['all'];
+    // In ldapts, to get all the attributes, you need to pass an empty array [] according to the documentation
+    attributes = [];
   } else {
     askedAttributes = ensureArray(cfgAttr || DEFAULT_ATTRIBUTES.user);
     attributes = utils.joinAttributes(
@@ -29,7 +31,16 @@ export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
   }
   const filter = getWildcardsUserFilter(adOptions.searchOptions.filter);
 
-  const searchOptions = { attributes, filter, scope: 'sub' };
+  // Make sure to copy all the necessary options from adOptions.searchOptions
+  const searchOptions: any = {
+    attributes,
+    filter,
+    scope: 'sub',
+    ...((adOptions.searchOptions as any).paged && { paged: (adOptions.searchOptions as any).paged }),
+    ...(adOptions.searchOptions.includeMembership && { includeMembership: adOptions.searchOptions.includeMembership }),
+    ...((adOptions.searchOptions as any).timeLimit && { timeLimit: (adOptions.searchOptions as any).timeLimit }),
+    ...((adOptions.searchOptions as any).sizeLimit && { sizeLimit: (adOptions.searchOptions as any).sizeLimit }),
+  };
 
   const searchAdOptions: IAdOptions = merge({}, adOptions, { searchOptions });
   const searcherResults: SearchEntryEx[] = await asyncSearcher(searchAdOptions);
@@ -43,7 +54,7 @@ export const findUsers = async (adOptions: IAdOptions): Promise<IUser[]> => {
     if (!utils.isUserResult(searchEntry)) {
       return;
     }
-    const user = newUser(searchEntry, askedAttributes); // VVQ Сократить количество атрибутов для быстрого поиска
+    const user = newUser(searchEntry, askedAttributes); // VVQ Reduce the number of attributes for quick search
     if (utils.isIncludeGroupMembershipFor(adOptions.searchOptions, 'user')) {
       user.groups = await getGroupMembersForDN(user.idn, adOptions);
     }

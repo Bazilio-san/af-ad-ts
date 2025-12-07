@@ -3,7 +3,8 @@ import merge from 'merge-options';
 // import pino from 'pino';
 import { DEFAULT_ATTRIBUTES, findUser, IAdOptions, IUser, setLogger } from '../src';
 
-if (1) {
+process.env.LOG_SET_LOGGER = 'true';
+if (process.env.LOG_SET_LOGGER === 'true') {
   setLogger();
 }
 
@@ -21,11 +22,10 @@ const baseDN: string = firstDC3segments.map((v) => `DC=${v}`).join(','); // : `D
 const adOptions: IAdOptions = {
   baseDN,
   clientOptions: {
-    url: dcArray,
+    url: dcArray[0], // ldapts requires a single URL, not an array
     bindDN: ldapApi.access.user,
     bindCredentials: ldapApi.access.password,
     // log: pino({ level: 'trace' }) as unknown as IAbstractLogger,
-    reconnect: true,
   },
   searchOptions: { paged: { pageSize: 100000 } },
   includeDeleted: false,
@@ -138,7 +138,6 @@ describe('findUser()', () => {
       };
       for (let i = 0; i < settings.userNames.length; i++) {
         const n = settings.userNames[i];
-        // eslint-disable-next-line no-await-in-loop
         const user = await fu(n);
         expect(user.sAMAccountName).toBe(n);
         expect(count).toBe(i + 1);

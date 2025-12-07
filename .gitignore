@@ -27,3 +27,4 @@ local*.*
 /package-lock.json
 /**/.env*
 **/dist
+/glm.ps1

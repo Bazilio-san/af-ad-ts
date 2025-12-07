@@ -1,8 +1,13 @@
 // https://msdn.microsoft.com/en-us/library/cc223242.aspx
 // [attribute];range=[low]-[high]
 // matching: 1 = name, 2 = low, 3 = high
-import { Attribute, AttributeJson } from 'ldapjs';
-import { SearchEntryEx } from '../@type/i-searcher';
+import { Attribute } from 'ldapts';
+import { SearchEntryEx } from '../../@type/i-searcher';
+
+// Simple interface for attribute objects with type property
+interface AttributeLike {
+  type: string;
+}
 
 const rangeRegex = /^([^;]+);range=(\d+)-([\d*]+)$/i;
 
@@ -64,14 +69,14 @@ export class RangeAttribute {
    */
   static getRangeAttributes (se: SearchEntryEx): RangeAttribute[] {
     return se.attributes
-      .filter(RangeAttribute.isRangeAttribute)
-      .map((attribute) => new RangeAttribute(attribute.type));
+      .filter((attribute: Attribute) => RangeAttribute.isRangeAttribute(attribute))
+      .map((attribute: Attribute) => new RangeAttribute(attribute.type));
   }
 
   /**
    * Checks to see if the specified attribute is a range retrieval attribute.
    */
-  static isRangeAttribute (attribute: AttributeJson | Attribute): boolean {
+  static isRangeAttribute (attribute: AttributeLike | Attribute): boolean {
     const { type } = attribute;
     return rangeRegex.test(type);
   }
@@ -80,6 +85,6 @@ export class RangeAttribute {
    * Checks to see if the specified object has any range retrieval attributes.
    */
   static hasRangeAttributes (se: SearchEntryEx): boolean {
-    return se.attributes.some(RangeAttribute.isRangeAttribute);
+    return se.attributes.some((attribute: Attribute) => RangeAttribute.isRangeAttribute(attribute));
   }
 }

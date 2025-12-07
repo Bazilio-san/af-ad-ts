@@ -1,7 +1,7 @@
-import { Attribute } from 'ldapjs';
-import { IAttributesObject, SearchEntryEx, TEntryParser } from '../@type/i-searcher';
-import { attributesToObject } from '../lib/attributes';
-import { binarySidToStringSid, getDN } from '../lib/utilities';
+import { Attribute } from 'ldapts';
+import { IAttributesObject, SearchEntryEx, TEntryParser } from '../../@type/i-searcher';
+import { attributesToObject } from '../../lib/attributes';
+import { binarySidToStringSid, getDN } from '../../lib/utilities';
 
 export const defaultPreEntryParser = (searchEntry: SearchEntryEx): SearchEntryEx => {
   const { attributes } = searchEntry;
@@ -15,8 +15,11 @@ export const defaultPreEntryParser = (searchEntry: SearchEntryEx): SearchEntryEx
     const index = attributes.findIndex((a) => a.type === type);
     if (index > -1) {
       const attribute = attributes[index];
-      const buf = attribute.buffers[attribute.buffers.length - 1];
-      attributes[index] = new Attribute({ type, values: [binarySidToStringSid(buf)] });
+      // In ldapts, binary data is stored in values as Buffer objects
+      const lastValue = attribute.values[attribute.values.length - 1];
+      if (Buffer.isBuffer(lastValue)) {
+        attributes[index] = new Attribute({ type, values: [binarySidToStringSid(lastValue)] });
+      }
     }
   });
   searchEntry.attributes = attributes;

@@ -1,14 +1,14 @@
-import ldap, { Client, SearchCallbackResponse, SearchReference } from 'ldapjs';
+// noinspection UnnecessaryLocalVariableJS
+
+import { Client, Attribute } from 'ldapts';
 import async from 'async';
 import { bg, black, rs } from 'af-color';
 import { RangeAttributesParser } from './RangeAttributesParser';
-import { DEFAULT_PAGE_SIZE } from '../constants';
-import { IAdOptions, ISearchOptionsEx, SearchEntryEx, SearcherConstructorOptions, TSearchCallback } from '../@type/i-searcher';
-import { Control } from '../@type/i-ldap';
+import { IAdOptions, ISearchOptionsEx, SearchEntryEx, SearcherConstructorOptions, TSearchCallback } from '../../@type/i-searcher';
+import { Control, Entry, SearchReference } from '../../@type/i-ldap';
 import { LdapSearchResult } from './LdapSearchResult';
-import { trace, toJson } from '../lib/logger';
-import { defaultPreEntryParser, defaultPostEntryParser } from './default-enry-parser';
-import { attributesToObject } from '../lib/attributes';
+import { trace, toJson } from '../../lib/logger';
+import { defaultPreEntryParser, defaultPostEntryParser } from './default-entry-parser';
 import { EControl, getControl } from './get-control';
 
 /**
@@ -37,6 +37,10 @@ export class Searcher {
 
   private readonly controls: Control[];
 
+  private bindCredentials?: { bindDN: string; bindCredentials: string };
+
+  private bound = false;
+
   constructor (options: SearcherConstructorOptions) {
     this.options = options;
     this.baseDN = options.baseDN;
@@ -54,26 +58,20 @@ export class Searcher {
     this.searchComplete = false;
     this.rangeProcessing = false;
 
+    // Extracting the credentials for bind
+    const { bindDN, bindCredentials, ...clientOptionsWithoutAuth } = clientOptions;
+
     // @ts-ignore
-    clientOptions.paged = false;
-    this.client = ldap.createClient(clientOptions);
-    // to handle connection errors
-    this.client.on('connectTimeout', callback);
-    this.client.on('error', callback);
+    clientOptionsWithoutAuth.paged = false;
+    this.client = new Client(clientOptionsWithoutAuth);
+
+    // In ldapts, you need to do bind explicitly, unlike ldapjs
+    if (bindDN && bindCredentials) {
+      this.bindCredentials = { bindDN, bindCredentials };
+    }
+    // In ldapts, error handling happens through try/catch in the async methods
 
     this.controls = options.controls || [];
-
-    // Add paging results control by default if not already added.
-    // @ts-ignore
-    const pagedControls = this.controls.filter((control) => control instanceof ldap.PagedResultsControl);
-
-    if (searchOptions.paged === undefined && pagedControls.length === 0) {
-      this.traceAttributes('Adding PagedResultControl to search (%dn)');
-      // @ts-ignore
-      const size = searchOptions.paged?.pageSize || DEFAULT_PAGE_SIZE;
-      // @ts-ignore
-      this.controls.push(new ldap.PagedResultsControl({ value: { size } }));
-    }
 
     if (options.includeDeleted) {
       const deletedType = '1.2.840.113556.1.4.417';
@@ -92,6 +90,46 @@ export class Searcher {
   }
 
   /**
+   * Converts Entry (ldapts format) to SearchEntryEx (legacy format)
+   */
+  private static _entryToSearchEntryEx (entry: Entry): SearchEntryEx {
+    const searchEntry: SearchEntryEx = {
+      ...entry,
+      ao: Searcher._entryToAttributesObject(entry),
+      idn: entry.dn,
+      attributes: Searcher._entryToLegacyAttributes(entry),
+    } as SearchEntryEx;
+    return searchEntry;
+  }
+
+  /**
+   * Converts an Entry to an attribute object
+   */
+  private static _entryToAttributesObject (entry: Entry): { [key: string]: string | string[] } {
+    const result: { [key: string]: string | string[] } = {};
+    Object.entries(entry).forEach(([key, value]) => {
+      if (key !== 'dn') {
+        result[key] = value as string | string[];
+      }
+    });
+    return result;
+  }
+
+  /**
+   * Converts an Entry to an Attribute array for legacy compatibility
+   */
+  private static _entryToLegacyAttributes (entry: Entry): Attribute[] {
+    const attributes: Attribute[] = [];
+    Object.entries(entry).forEach(([key, value]) => {
+      if (key !== 'dn') {
+        const values = Array.isArray(value) ? value as string[] : [value as string];
+        attributes.push(new Attribute({ type: key, values }));
+      }
+    });
+    return attributes;
+  }
+
+  /**
    * Invoked when the main search has completed, including any referrals.
    */
   onSearchEnd () {
@@ -99,7 +137,7 @@ export class Searcher {
       return;
     }
     trace(`Active directory search [${this.baseDN}] returned ${this.results.size} entries for filter \n${toJson(this.searchOptions.f)}\n`);
-    this.client.unbind(undefined);
+    this.client.unbind();
     this.callback(null, [...this.results.values()]);
   }
 
@@ -158,40 +196,38 @@ export class Searcher {
     if (!referral) {
       return;
     }
-    referral.client.unbind(undefined);
+    referral.client.unbind();
     this.pendingReferrals.delete(referral);
   }
 
   /**
    * Used to handle referrals, if they are enabled.
    *
-   * @param referral A referral object that has a `uris` property.
+   * @param referralUri A referral URI string.
    */
-  onReferralChase (referral: SearchReference) {
-    referral.uris.forEach((uri: string) => {
-      if (!this.isReferralAllowed(uri)) {
-        return;
-      }
+  onReferralChase (referralUri: SearchReference) {
+    if (!this.isReferralAllowed(referralUri)) {
+      return;
+    }
 
-      trace(`Following LDAP referral chase at ${uri}`);
-      const ref = new URL(uri);
-      const referralBaseDn = (ref.pathname || '/').substring(1);
-      const refSearcher = new Searcher({
-        ...this.options,
-        baseDN: referralBaseDn,
-        callback: (err) => {
-          if (err) {
-            // eslint-disable-next-line no-console
-            console.log(err);
-            trace(`[${err.errno}] An error occurred chasing the LDAP referral on ${referralBaseDn} options: (${toJson(this.options)})`);
-          }
-          this.removeReferral(refSearcher);
-        },
-      });
-      this.pendingReferrals.add(refSearcher);
-
-      refSearcher.search();
+    trace(`Following LDAP referral chase at ${referralUri}`);
+    const ref = new URL(referralUri);
+    const referralBaseDn = (ref.pathname || '/').substring(1);
+    const refSearcher = new Searcher({
+      ...this.options,
+      baseDN: referralBaseDn,
+      callback: (err) => {
+        if (err) {
+          // eslint-disable-next-line no-console
+          console.log(err);
+          trace(`[${err.errno}] An error occurred chasing the LDAP referral on ${referralBaseDn} options: (${toJson(this.options)})`);
+        }
+        this.removeReferral(refSearcher);
+      },
     });
+    this.pendingReferrals.add(refSearcher);
+
+    refSearcher.search();
   }
 
   /**
@@ -200,56 +236,90 @@ export class Searcher {
    * the query has completed, or an error occurs, the callback you specified
    * during construction will be invoked.
    */
-  search () {
+  private async ensureBound () {
+    if (!this.bound && this.bindCredentials) {
+      trace(`Binding to LDAP as ${this.bindCredentials.bindDN}`);
+      await this.client.bind(this.bindCredentials.bindDN, this.bindCredentials.bindCredentials);
+      this.bound = true;
+      trace('Successfully bound to LDAP');
+    }
+  }
+
+  async search () {
     this.traceAttributes('Querying active directory (%dn)');
 
     trace(`Search by filter ${black}${bg.lYellow}${this.searchOptions.f}${rs}`);
-    this.client.search(this.baseDN, this.searchOptions, this.controls, (err, searchCallbackResponse: SearchCallbackResponse) => {
+
+    try {
+      // Run bind before searching
+      await this.ensureBound();
+
+      // ldapts uses Promise-based API instead of callbacks
+      const { searchEntries, searchReferences } = await this.client.search(
+        this.baseDN,
+        this.searchOptions,
+        this.controls,
+      );
+
       trace(`Search by [prepared] filter ${black}${bg.lGreen}${this.searchOptions.filter?.toString()}${rs}`);
-      if (err) {
-        this.callback(err);
+
+      // Process search entries
+      searchEntries.forEach((entry) => {
+        const searchEntry = Searcher._entryToSearchEntryEx(entry);
+        this.onSearchEntry(searchEntry);
+      });
+
+      // Process search references (referrals)
+      searchReferences.forEach((reference) => {
+        this.onReferralChase(reference);
+      });
+
+      // Mark search as complete
+      this.searchComplete = true;
+      this.onSearchEnd();
+    } catch (err: any) {
+      if (err.name === 'SizeLimitExceededError') {
+        this.onSearchEnd();
         return;
       }
-      const errCallback = (err2: Error | any) => {
-        if (err2.name === 'SizeLimitExceededError') {
-          this.onSearchEnd();
-          return;
-        }
 
-        this.client.unbind(undefined);
-        // eslint-disable-next-line no-console
-        console.log(err2);
-        trace(`[${err2.errno || 'UNKNOWN'}] An error occurred performing the requested LDAP search on ${
-          this.baseDN} options: (${toJson(this.options)})`);
-        this.callback(err2);
-      };
-
-      searchCallbackResponse.on('searchEntry', this.onSearchEntry.bind(this));
-      searchCallbackResponse.on('searchReference', this.onReferralChase.bind(this));
-      searchCallbackResponse.on('error', errCallback);
-      searchCallbackResponse.on('end', () => {
-        this.searchComplete = true;
-        this.onSearchEnd();
-      });
-    });
+      this.client.unbind();
+      // eslint-disable-next-line no-console
+      console.log(err);
+      trace(`[${err.errno || 'UNKNOWN'}] An error occurred performing the requested LDAP search on ${
+        this.baseDN} options: (${toJson(this.options)})`);
+      this.callback(err);
+    }
   }
 
-  rangeSearch (searchOptions: ISearchOptionsEx, rangeCB: (err: any, se?: SearchEntryEx) => void) {
+  async rangeSearch (searchOptions: ISearchOptionsEx, rangeCB: (err: any, se?: SearchEntryEx) => void) {
     this.traceAttributes('Quering (%dn) for range search', searchOptions);
-    this.client.search(this.baseDN, searchOptions, this.controls, (err, res) => {
-      if (err) {
-        return rangeCB(err);
-      }
-      res.on('searchEntry', (searchEntry: SearchEntryEx) => {
-        searchEntry.ao = attributesToObject(searchEntry.attributes); // VVQ to define getter
+
+    try {
+      // Make sure bind is done
+      await this.ensureBound();
+
+      const { searchEntries, searchReferences } = await this.client.search(
+        this.baseDN,
+        searchOptions,
+        this.controls,
+      );
+
+      // Process each entry and call the callback
+      searchEntries.forEach((entry) => {
+        const searchEntry = Searcher._entryToSearchEntryEx(entry);
         rangeCB(null, searchEntry);
       });
-      res.on('searchReference', this.onReferralChase.bind(this));
-      res.on('end', () => {
-        this.rangeProcessing = false;
+
+      // Process search references (referrals)
+      searchReferences.forEach((reference) => {
+        this.onReferralChase(reference);
       });
-      res.on('error', rangeCB);
-    });
+
+      this.rangeProcessing = false;
+    } catch (err: any) {
+      rangeCB(err);
+    }
   }
 }
 
@@ -262,5 +332,5 @@ export const asyncSearcher = async (adOptions: IAdOptions) => new Promise<Search
     resolve(results || []);
   };
   const searcher = new Searcher({ ...adOptions, callback });
-  searcher.search();
+  searcher.search().catch(reject);
 });

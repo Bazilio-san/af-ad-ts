@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
 import merge from 'merge-options';
 import { DateTime } from 'luxon';
-import { findUsers, IAbstractLogger, IAdOptions, ISearchOptionsEx, setLogger } from "../src";
+import { findUsers, IAbstractLogger, IAdOptions, ISearchOptionsEx, setLogger } from '../src';
 
-if (0) {
+if (process.env.LOG_SET_LOGGER === 'true') {
   setLogger({ trace: console.log.bind(console) } as unknown as IAbstractLogger);
 }
 
@@ -18,11 +18,10 @@ const baseDN: string = firstDC3segments.map((v) => `DC=${v}`).join(','); // : `D
 const adOptions: IAdOptions = {
   baseDN,
   clientOptions: {
-    url: dcArray,
+    url: dcArray[0], // ldapts requires a single URL, not an array
     bindDN: ldapApi.access.user,
     bindCredentials: ldapApi.access.password,
     // log: pino({ level: 'trace' }) as unknown as IAbstractLogger,
-    reconnect: true,
   },
   searchOptions: { paged: { pageSize: 100000 } },
   includeDeleted: false,
@@ -96,7 +95,7 @@ describe('findUsers()', () => {
       const opts = getAdOptions({
         filter: `(whenChanged>=${dt.toFormat('yyyyMMddHHmmss')}.0Z)`,
         attributes: ['*'],
-      });
+      }, { searchOptions: { paged: 10 } });
       let users;
       try {
         users = await findUsers(opts);

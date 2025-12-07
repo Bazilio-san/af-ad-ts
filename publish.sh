@@ -26,10 +26,10 @@ exit_on_error(){
 set +e
 
 branch_name=$(git symbolic-ref --short HEAD)
-exit_on_error "$y**** Version will not be bumped since retcode is not equals 0 ****$c0"
+exit_on_error "$y**** Version will not be bumped since returned code is not equals 0 ****$c0"
 
 if [[ "$branch_name" != "$expected_branch" ]] ; then
-  echo -e "${y}**** git ветка должна быть ${c}{$expected_branch}${y}, текущая: ${c}${branch_name}${y}  ****$c0"
+  echo -e "${y}**** git The branch must be ${c}{$expected_branch}${y}, current: ${c}${branch_name}${y}  ****$c0"
   read -p "Press any key to resume ..."
   exit 0
 fi
@@ -68,7 +68,7 @@ exit_on_error
 git commit --no-verify -m "$new_version"
 exit_on_error
 
-git push github refs/heads/master:master
+git push origin refs/heads/master:master
 exit_on_error
 
 #git push fa refs/heads/master:master

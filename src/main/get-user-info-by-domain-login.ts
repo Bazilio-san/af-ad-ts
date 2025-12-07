@@ -36,6 +36,29 @@ const shortAttributes = [
   'enabled',
 ];
 
+/**
+ * Getting user information by domain login:
+ *   dn: string, // CN=Pupkin John Batone (jpupkin),OU=Boston,OU=Regions,OU=Users,OU=FMS,DC=office,DC=company,DC=com
+ *   userPrincipalName: string, // jpupkin@company.com
+ *   homeDrive?: string, // O:
+ *   profilePath?: string, // \\office.company.com\root\HomeDir\jpupkin
+ *   givenName: string, // John
+ *   sn: string, // Pupkin
+ *   middleName: string, // Batone
+ *   employeeId: string, // "12345"
+ *   lastLogon: string | number | null, // 2003-11-03T04:00:31.2994826Z
+ *   memberOf: any[],
+ *   workPhone: string, // "1122"
+ *   telephoneNumber: string, // "1122"
+ *   company: string, // JSC "Bulben"
+ *   mobile: string, //
+ *   domain: string,
+ *   name: string, // Pupkin John Batone (jpupkin)
+ *   description: string, // Regional user. Boston office.
+ *   thumbnailPhoto: string,
+ *   photo: string,
+ *   jpegPhoto: string,
+ */
 export const getUserInfoByDomainLogin = async <T extends IUserInfoShort = IUserInfoFull> (arg: {
   username: string,
   requestType?: 'full' | 'short',

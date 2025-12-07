@@ -1,22 +1,43 @@
-import { Attribute, AttributeJson, SearchEntry, SearchEntryObject } from 'ldapjs';
+import { Attribute } from 'ldapts';
 import { pick, cloneDeep } from 'af-tools-ts';
 import { IAttributesObject, SearchEntryEx } from '../@type/i-searcher';
+import { Entry } from '../@type/i-ldap';
 import { ensureArray } from './core-utilities';
 
-type TAnySEO = SearchEntry | SearchEntryObject;
-type TAnyAttr = Attribute | AttributeJson;
+type TLegacyEntry = { attributes: Attribute[] };
+type TAnySEO = Entry | TLegacyEntry;
 
-export const hasAttribute = (seo: TAnySEO, attrName: string): boolean => seo.attributes.some((a) => a.type === attrName);
+export const hasAttribute = (seo: TAnySEO, attrName: string): boolean => {
+  // Legacy format with attributes array
+  if ('attributes' in seo && Array.isArray(seo.attributes)) {
+    return (seo.attributes as Attribute[]).some((a: Attribute) => a.type === attrName);
+  }
+  // New Entry format with direct properties
+  return attrName in seo;
+};
 
-export const getAttribute = <T = TAnyAttr> (
+export const getAttribute = <T = Attribute> (
   seo: TAnySEO,
   attrName: string,
-): T | undefined => seo.attributes.find((a) => a.type === attrName) as T | undefined;
+): T | undefined => {
+  // Legacy format with attributes array
+  if ('attributes' in seo && Array.isArray(seo.attributes)) {
+    return (seo.attributes as Attribute[]).find((a: Attribute) => a.type === attrName) as T | undefined;
+  }
+  // New Entry format with direct properties
+  return (seo as any)[attrName] as T | undefined;
+};
 
 export const getAttributeValues = (seo: TAnySEO, attributeName: string): string[] => {
-  const attr = getAttribute(seo, attributeName);
-  const { values } = attr || {};
-  return (Array.isArray(values) ? values : [values]).filter((v) => v != null) as string[];
+  // Legacy format with attributes array
+  if ('attributes' in seo && Array.isArray(seo.attributes)) {
+    const attr = getAttribute(seo, attributeName) as Attribute;
+    const { values } = attr || {};
+    return (Array.isArray(values) ? values : [values]).filter((v) => v != null) as string[];
+  }
+  // New Entry format with direct properties
+  const value = (seo as any)[attributeName];
+  return (Array.isArray(value) ? value : [value]).filter((v) => v != null) as string[];
 };
 
 export const getLastValue = (values: string | string[]): string => {
@@ -27,12 +48,21 @@ export const getLastValue = (values: string | string[]): string => {
 };
 
 export const getAttributeSingleValue = <T = string | undefined> (seo: TAnySEO, attributeName: string): T => {
-  // VVQ везде ли верно используется?
-  const attr = getAttribute(seo, attributeName);
-  if (attr == null) {
+  // VVQ Is it used correctly everywhere?
+  // Legacy format with attributes array
+  if ('attributes' in seo && Array.isArray(seo.attributes)) {
+    const attr = getAttribute(seo, attributeName) as Attribute;
+    if (attr == null) {
+      return undefined as T;
+    }
+    return getLastValue(attr.values as string | string[]) as T;
+  }
+  // New Entry format with direct properties
+  const value = (seo as any)[attributeName];
+  if (value == null) {
     return undefined as T;
   }
-  return getLastValue(attr.values) as T;
+  return getLastValue(value) as T;
 };
 
 /**
@@ -43,10 +73,12 @@ export const shouldIncludeAllAttributes = (attributes: string | string[] | undef
 
 export const attributesToObject = (attributes: Attribute[]): IAttributesObject => attributes
   .reduce((accum, attribute) => {
-    let v = attribute.values;
+    let v: string | string[] = attribute.values as string | string[];
     if (Array.isArray(v) && v.length === 1) {
-      v = v[0];
+      // eslint-disable-next-line prefer-destructuring
+      v = v[0] as string;
     }
+    // @ts-ignore
     accum[attribute.type] = v;
     return accum;
   }, {});
@@ -66,7 +98,7 @@ export const pickAttributes = (searchEntry: SearchEntryEx, desiredAttributes: st
   return cloneDeep(pick(searchEntry.ao, desiredAttributes));
 };
 
-export const getSearchEntryKey = (se: SearchEntry): string => { // VVQ
+export const getSearchEntryKey = (se: Entry): string => { // VVQ
   const key = getAttributeSingleValue(se, 'dn') || getAttributeSingleValue(se, 'cn');
   return key || '';
 };

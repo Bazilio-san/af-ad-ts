@@ -1,5 +1,5 @@
-import { SearchOptions, ClientOptions, SearchEntry, Filter } from 'ldapjs';
-import { Control } from './i-ldap';
+import { SearchOptions, ClientOptions, Filter } from 'ldapts';
+import { Control, Entry, Attribute } from './i-ldap';
 import { IAbstractLogger } from './i-abstract-logger';
 
 export interface ISearchOptionsEx extends SearchOptions {
@@ -7,9 +7,9 @@ export interface ISearchOptionsEx extends SearchOptions {
    If the array is empty or undefined - use the default set of attributes
    If one of the attributes is 'all' or '*' - all attributes
    */
-  attributes?: string | string[] | undefined;
-  includeMembership?: string[] | null,
-  f?: string | Filter,
+  attributes?: string[] | undefined;
+  includeMembership?: string[] | null;
+  f?: string | Filter;
 }
 
 export type IAttributesObject = {
@@ -57,10 +57,13 @@ export interface DefaultAttributes {
   group: string[],
 }
 
-export interface SearchEntryEx extends SearchEntry {
-  ao: IAttributesObject,
-  idn: string,
+export interface SearchEntryExProperties {
+  ao: IAttributesObject;
+  idn: string;
+  attributes: Attribute[];
 }
+
+export type SearchEntryEx = Entry & SearchEntryExProperties;
 
 export type TEntryParser = (entry: SearchEntryEx, callback: Function) => void
 

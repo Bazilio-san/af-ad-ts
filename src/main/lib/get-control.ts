@@ -1,6 +1,5 @@
 /* eslint-disable arrow-body-style */
-import ldap from 'ldapjs';
-import { Control } from '../@type/i-ldap';
+import { Control } from 'ldapts';
 
 // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/3c5e87db-4728-4f29-b164-01dd7d7391ea
 export enum EControl {
@@ -25,6 +24,5 @@ export enum EControl {
 }
 
 export const getControl = (type: EControl): Control => {
-  // @ts-ignore
-  return new ldap.Control({ type, criticality: true });
+  return new Control(type, { critical: true });
 };

@@ -1,6 +1,6 @@
 import { RangeAttribute } from './RangeAttribute';
-import { getAttributeSingleValue } from '../lib/attributes';
-import { IAttributesObject, SearchEntryEx } from '../@type/i-searcher';
+import { getAttributeSingleValue } from '../../lib/attributes';
+import { IAttributesObject, SearchEntryEx } from '../../@type/i-searcher';
 
 /**
  * Represents a paged search result.
@@ -20,7 +20,7 @@ export class LdapSearchResult {
 
   public name (): string {
     const se = this.originalSearchEntry;
-    return se.objectName?.toString()
+    return se.idn
       || getAttributeSingleValue(se, 'dn')
       || getAttributeSingleValue(se, 'distinguishedName')
       || '';

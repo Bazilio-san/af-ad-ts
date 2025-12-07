@@ -1,12 +1,12 @@
 import { green } from 'af-color';
-import * as utils from '../lib/utilities';
-import { asyncSearcher } from './Searcher';
-import { DEFAULT_ATTRIBUTES } from '../constants';
-import { IAdOptions, SearchEntryEx } from '../@type/i-searcher';
-import { toJson, trace } from '../lib/logger';
-import { newGroup, IGroup } from '../models/group';
-import { shouldIncludeAllAttributes } from '../lib/attributes';
-import { ensureArray } from '../lib/core-utilities';
+import * as utils from '../../lib/utilities';
+import { asyncSearcher } from '../lib/Searcher';
+import { DEFAULT_ATTRIBUTES } from '../../constants';
+import { IAdOptions, SearchEntryEx } from '../../@type/i-searcher';
+import { toJson, trace } from '../../lib/logger';
+import { newGroup, IGroup } from '../../models/group';
+import { shouldIncludeAllAttributes } from '../../lib/attributes';
+import { ensureArray } from '../../lib/core-utilities';
 
 /**
  * An interface for querying a specific group for its members and its subgroups.
@@ -17,7 +17,7 @@ export const getGroupMembersForDN = async (
   dn: string,
   adOptions: IAdOptions,
   hash: Map<string, IGroup> = new Map(),
-) => {
+): Promise<IGroup[]> => {
   trace(`getGroupMembershipForDN(${dn})`, green);
 
   // Ensure that a valid DN was provided. Otherwise, abort the search.
@@ -48,7 +48,7 @@ export const getGroupMembersForDN = async (
   const searchAdOptions: IAdOptions = {
     ...adOptions,
     searchOptions: {
-      // filter: `(member=CN=Макаров Вячеслав Владимирович \\28vvmakarov\\29)`,
+      // filter: `(member=CN=Pupkin Ivan Ivanovich \\28ipupkin\\29)`,
       filter: `(member=${utils.parseDistinguishedName(dn)})`,
       scope: 'sub',
       attributes,

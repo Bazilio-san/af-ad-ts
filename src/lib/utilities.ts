@@ -2,9 +2,30 @@
 // this module consists of various utility functions that are used
 // throughout the ActiveDirectory code
 
-import { SearchEntry, SearchOptions } from 'ldapjs';
+import { SearchOptions } from 'ldapts';
+import { Entry } from '../@type/i-ldap';
 import { ISearchOptionsEx } from '../@type/i-searcher';
 import { getAttributeSingleValue, getAttributeValues, hasAttribute, shouldIncludeAllAttributes } from './attributes';
+
+/**
+ * Safely extracts a string value from an LDAP attribute which may be:
+ * - a string
+ * - a Buffer
+ * - an array of strings or Buffers (returns the first value as string)
+ */
+export const getStringValue = (value: any): string | undefined => {
+  if (Array.isArray(value)) {
+    const firstValue = value[0];
+    if (Buffer.isBuffer(firstValue)) {
+      return firstValue.toString('utf8');
+    }
+    return typeof firstValue === 'string' ? firstValue : undefined;
+  }
+  if (Buffer.isBuffer(value)) {
+    return value.toString('utf8');
+  }
+  return typeof value === 'string' ? value : undefined;
+};
 
 /**
  * Gets a properly formatted LDAP compound filter. This is a very simple
@@ -53,6 +74,23 @@ export const escLdapString = (s: string, options?: IEscLdapStringOptions): strin
     }
   }
   return sb;
+};
+
+/** Normalize unknown to Error for consistent catch handling */
+export const asError = (e: unknown): Error => {
+  if (e instanceof Error) return e;
+  try {
+    // Include code/message if provided as plain object
+    if (e && typeof e === 'object') {
+      const anyE: any = e;
+      const err = new Error(String(anyE.message || anyE.toString?.() || 'Unknown error'));
+      if (anyE.code) (err as any).code = anyE.code;
+      return err;
+    }
+  } catch {
+    // ignore
+  }
+  return new Error(String(e));
 };
 
 /**
@@ -200,7 +238,7 @@ export const getWildcardsUserFilter = (filter?: any): string => {
 /**
  * Checks to see if the LDAP result describes a group entry.
  */
-export const isGroupResult = (searchEntry: SearchEntry): boolean => {
+export const isGroupResult = (searchEntry: Entry): boolean => {
   if (!searchEntry) {
     return false;
   }
@@ -221,7 +259,7 @@ export const isGroupResult = (searchEntry: SearchEntry): boolean => {
 /**
  * Checks to see if the LDAP result describes a user entry.
  */
-export const isUserResult = (searchEntry: SearchEntry): boolean => {
+export const isUserResult = (searchEntry: Entry): boolean => {
   if (!searchEntry) {
     return false;
   }
@@ -307,11 +345,11 @@ export const decodeEscapeSequence = (s: string): string => s
   .replace(/\\([0-9A-Fa-f]{2})/g, (...args) => String
     .fromCharCode(parseInt(args[1], 16)));
 
-export const getDN = (searchEntry: SearchEntry): string => {
+export const getDN = (searchEntry: Entry): string => {
   const dn = getAttributeSingleValue(searchEntry, 'distinguishedName')
     || getAttributeSingleValue(searchEntry, 'dn')
     || getAttributeSingleValue(searchEntry, 'cn')
-    || searchEntry.objectName?.toString()
+    || searchEntry.dn
     || '';
   return decodeEscapeSequence(dn);
 };
