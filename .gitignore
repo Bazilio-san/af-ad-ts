@@ -28,3 +28,4 @@ local*.*
 /**/.env*
 **/dist
 /glm.ps1
+/.npmrc
