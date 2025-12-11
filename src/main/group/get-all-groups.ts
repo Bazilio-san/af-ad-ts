@@ -50,9 +50,7 @@ export const getAllGroups = async (
     // Use pagination to avoid size limit errors
     const paginator = client.searchPaginated(options.baseDN, {
       ...searchOptions,
-      paged: {
-        pageSize: DEFAULT_PAGE_SIZE,
-      },
+      paged: { pageSize: DEFAULT_PAGE_SIZE },
     });
 
     const allEntries: any[] = [];
