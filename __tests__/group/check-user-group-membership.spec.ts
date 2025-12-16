@@ -28,7 +28,7 @@ describe('checkUserGroupMembership', () => {
     });
     for (let i = 0; i < usersInGroups.length; i++) {
       const testUser = usersInGroups[i];
-      // eslint-disable-next-line no-loop-func
+       
       test('should check user group membership', async () => {
         const result = await groupChecker.isUserInGroup(testUser.user, testUser.group);
         expect(result).toBe(testUser.isMember);

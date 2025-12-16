@@ -1,10 +1,13 @@
 import { EventEmitter } from 'events';
-import { RangeAttribute } from './RangeAttribute';
-import { LdapSearchResult } from './LdapSearchResult';
-import { Searcher } from './Searcher';
-import { trace, toJson } from '../../lib/logger';
-import { getAttributeValues, getSearchEntryKey } from '../../lib/attributes';
+
 import { ISearchOptionsEx, SearchEntryEx } from '../../@type/i-searcher';
+import { getAttributeValues, getSearchEntryKey } from '../../lib/attributes';
+import { trace, toJson } from '../../lib/logger';
+
+import { LdapSearchResult } from './LdapSearchResult';
+import { RangeAttribute } from './RangeAttribute';
+import { Searcher } from './Searcher';
+
 
 /**
  * Parses the distinguishedName (dn) to remove any invalid characters or to

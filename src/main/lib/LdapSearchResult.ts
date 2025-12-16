@@ -1,6 +1,7 @@
-import { RangeAttribute } from './RangeAttribute';
-import { getAttributeSingleValue } from '../../lib/attributes';
 import { IAttributesObject, SearchEntryEx } from '../../@type/i-searcher';
+import { getAttributeSingleValue } from '../../lib/attributes';
+
+import { RangeAttribute } from './RangeAttribute';
 
 /**
  * Represents a paged search result.

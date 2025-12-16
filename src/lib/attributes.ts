@@ -1,7 +1,9 @@
-import { Attribute } from 'ldapts';
 import { pick, cloneDeep } from 'af-tools-ts';
-import { IAttributesObject, SearchEntryEx } from '../@type/i-searcher';
+import { Attribute } from 'ldapts';
+
 import { Entry } from '../@type/i-ldap';
+import { IAttributesObject, SearchEntryEx } from '../@type/i-searcher';
+
 import { ensureArray } from './core-utilities';
 
 type TLegacyEntry = { attributes: Attribute[] };
@@ -75,7 +77,7 @@ export const attributesToObject = (attributes: Attribute[]): IAttributesObject =
   .reduce((accum, attribute) => {
     let v: string | string[] = attribute.values as string | string[];
     if (Array.isArray(v) && v.length === 1) {
-      // eslint-disable-next-line prefer-destructuring
+       
       v = v[0] as string;
     }
     // @ts-ignore

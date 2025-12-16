@@ -2,6 +2,7 @@
 // [attribute];range=[low]-[high]
 // matching: 1 = name, 2 = low, 3 = high
 import { Attribute } from 'ldapts';
+
 import { SearchEntryEx } from '../../@type/i-searcher';
 
 // Simple interface for attribute objects with type property

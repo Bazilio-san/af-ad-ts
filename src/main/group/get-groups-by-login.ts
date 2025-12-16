@@ -1,9 +1,10 @@
 import { SearchOptions } from 'ldapts';
+
 import { IAdOptions } from '../../@type/i-searcher';
+import { GROUP_BASE_ATTRIBUTES } from '../../lib/ad-constants';
+import { withLdapClient } from '../../lib/ldap-client';
 import { trace } from '../../lib/logger';
 import { asError, escLdapString, getStringValue } from '../../lib/utilities';
-import { withLdapClient } from '../../lib/ldap-client';
-import { GROUP_BASE_ATTRIBUTES } from '../../lib/ad-constants';
 
 // getStringValue moved to ../../lib/utilities for reuse
 

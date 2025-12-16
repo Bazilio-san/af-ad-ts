@@ -1,4 +1,4 @@
-/* eslint-disable arrow-body-style */
+ 
 import { Control } from 'ldapts';
 
 // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/3c5e87db-4728-4f29-b164-01dd7d7391ea

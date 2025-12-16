@@ -1,4 +1,5 @@
 import { Attribute } from 'ldapts';
+
 import { IAttributesObject, SearchEntryEx, TEntryParser } from '../../@type/i-searcher';
 import { attributesToObject } from '../../lib/attributes';
 import { binarySidToStringSid, getDN } from '../../lib/utilities';

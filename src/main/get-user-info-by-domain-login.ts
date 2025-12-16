@@ -1,5 +1,6 @@
-/* eslint-disable no-bitwise,no-useless-catch */
+ 
 import { Client, SearchOptions } from 'ldapts';
+
 import { IUserInfoFull, IUserInfoShort } from '../@type/i-ldap-api';
 import { ldapTsToJS } from '../lib/utilities';
 

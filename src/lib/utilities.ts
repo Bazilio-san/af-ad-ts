@@ -1,10 +1,12 @@
-/* eslint-disable no-bitwise */
+ 
 // this module consists of various utility functions that are used
 // throughout the ActiveDirectory code
 
 import { SearchOptions } from 'ldapts';
+
 import { Entry } from '../@type/i-ldap';
 import { ISearchOptionsEx } from '../@type/i-searcher';
+
 import { getAttributeSingleValue, getAttributeValues, hasAttribute, shouldIncludeAllAttributes } from './attributes';
 
 /**
@@ -53,7 +55,7 @@ export interface IEscLdapStringOptions {
 }
 
 export const escLdapString = (s: string, options?: IEscLdapStringOptions): string => {
-  if (s == null) return '';
+  if (s == null) {return '';}
   let sb = '';
   for (let i = 0; i < s.length; i++) {
     const c = s.charCodeAt(i);
@@ -78,13 +80,13 @@ export const escLdapString = (s: string, options?: IEscLdapStringOptions): strin
 
 /** Normalize unknown to Error for consistent catch handling */
 export const asError = (e: unknown): Error => {
-  if (e instanceof Error) return e;
+  if (e instanceof Error) {return e;}
   try {
     // Include code/message if provided as plain object
     if (e && typeof e === 'object') {
       const anyE: any = e;
       const err = new Error(String(anyE.message || anyE.toString?.() || 'Unknown error'));
-      if (anyE.code) (err as any).code = anyE.code;
+      if (anyE.code) {(err as any).code = anyE.code;}
       return err;
     }
   } catch {

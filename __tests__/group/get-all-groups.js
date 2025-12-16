@@ -1,8 +1,9 @@
 /* eslint-disable no-console */
 
 import { createRequire } from 'module';
-import { getAllGroups } from '../../dist/cjs/src/main/group/get-all-groups.js';
+
 import { setLogger } from '../../dist/cjs/src/lib/logger.js';
+import { getAllGroups } from '../../dist/cjs/src/main/group/get-all-groups.js';
 
 setLogger();
 

@@ -1,6 +1,7 @@
-/* eslint-disable no-console */
-import merge from 'merge-options';
+/* eslint-disable no-console,import/order */
 import { DateTime } from 'luxon';
+import merge from 'merge-options';
+
 import { findUsers, IAbstractLogger, IAdOptions, ISearchOptionsEx, setLogger } from '../src';
 
 if (process.env.LOG_SET_LOGGER === 'true') {

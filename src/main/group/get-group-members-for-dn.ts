@@ -1,12 +1,13 @@
 import { green } from 'af-color';
-import * as utils from '../../lib/utilities';
-import { asyncSearcher } from '../lib/Searcher';
-import { DEFAULT_ATTRIBUTES } from '../../constants';
+
 import { IAdOptions, SearchEntryEx } from '../../@type/i-searcher';
-import { toJson, trace } from '../../lib/logger';
-import { newGroup, IGroup } from '../../models/group';
+import { DEFAULT_ATTRIBUTES } from '../../constants';
 import { shouldIncludeAllAttributes } from '../../lib/attributes';
 import { ensureArray } from '../../lib/core-utilities';
+import { toJson, trace } from '../../lib/logger';
+import * as utils from '../../lib/utilities';
+import { newGroup, IGroup } from '../../models/group';
+import { asyncSearcher } from '../lib/Searcher';
 
 /**
  * An interface for querying a specific group for its members and its subgroups.

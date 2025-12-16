@@ -18,7 +18,7 @@ const adOptions = {
 
 async function getUserGroups (login) {
   try {
-    // eslint-disable-next-line no-console
+     
     console.log(`Searching groups for user: ${login}`);
 
     // Get groups including nested ones

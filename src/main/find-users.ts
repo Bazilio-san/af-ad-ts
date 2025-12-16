@@ -1,14 +1,16 @@
 import merge from 'merge-options';
-import * as utils from '../lib/utilities';
-import { IUser, newUser } from '../models/user';
-import { asyncSearcher } from './lib/Searcher';
-import { DEFAULT_ATTRIBUTES } from '../constants';
-import { getGroupMembersForDN } from './group/get-group-members-for-dn';
+
 import { IAdOptions, SearchEntryEx } from '../@type/i-searcher';
-import { trace, toJson } from '../lib/logger';
+import { DEFAULT_ATTRIBUTES } from '../constants';
 import { shouldIncludeAllAttributes } from '../lib/attributes';
 import { ensureArray } from '../lib/core-utilities';
+import { trace, toJson } from '../lib/logger';
+import * as utils from '../lib/utilities';
 import { getWildcardsUserFilter } from '../lib/utilities';
+import { IUser, newUser } from '../models/user';
+
+import { getGroupMembersForDN } from './group/get-group-members-for-dn';
+import { asyncSearcher } from './lib/Searcher';
 
 /**
  * Finding users within the LDAP tree.

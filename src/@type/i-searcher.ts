@@ -1,6 +1,7 @@
 import { SearchOptions, ClientOptions, Filter } from 'ldapts';
-import { Control, Entry, Attribute } from './i-ldap';
+
 import { IAbstractLogger } from './i-abstract-logger';
+import { Control, Entry, Attribute } from './i-ldap';
 
 export interface ISearchOptionsEx extends SearchOptions {
   /**

@@ -1,4 +1,5 @@
 import { Client } from 'ldapts';
+
 import { IAdOptions } from '../@type/i-searcher';
 
 /**

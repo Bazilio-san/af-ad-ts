@@ -1,9 +1,9 @@
-/* eslint-disable no-restricted-syntax */
 import { Client, SearchOptions } from 'ldapts';
+
 import { IAdOptions } from '../../@type/i-searcher';
+import { DEFAULT_PAGE_SIZE } from '../../constants';
 import { trace } from '../../lib/logger';
 import { getStringValue } from '../../lib/utilities';
-import { DEFAULT_PAGE_SIZE } from '../../constants';
 
 // getStringValue moved to ../../lib/utilities for reuse (DRY)
 
@@ -97,11 +97,15 @@ export const getAllGroups = async (
         if (Array.isArray(rawMember)) {
           for (const v of rawMember) {
             const s = getStringValue(v) || (typeof v === 'string' ? v : undefined);
-            if (s) memberList.push(s);
+            if (s) {
+              memberList.push(s);
+            }
           }
         } else {
           const s = getStringValue(rawMember) || (typeof rawMember === 'string' ? rawMember : undefined);
-          if (s) memberList.push(s);
+          if (s) {
+            memberList.push(s);
+          }
         }
       }
       if (memberList.length) {
@@ -114,7 +118,7 @@ export const getAllGroups = async (
     for (const [parentDN, memberDNs] of memberRefs.entries()) {
       const parent = groupsMap.get(parentDN);
       if (!parent) {
-        // eslint-disable-next-line no-continue
+
         continue;
       }
       for (const mdn of memberDNs) {
@@ -143,5 +147,3 @@ export const getAllGroups = async (
     }
   }
 };
-
-export default getAllGroups;

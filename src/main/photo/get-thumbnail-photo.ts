@@ -1,6 +1,7 @@
 import merge from 'merge-options';
-import { asyncSearcher } from '../lib/Searcher';
+
 import { IAdOptions, SearchEntryEx } from '../../@type/i-searcher';
+import { asyncSearcher } from '../lib/Searcher';
 
 export const getThumbnailPhoto = async (adOptions: IAdOptions, domain: string, username: string): Promise<Buffer | undefined> => {
   const searchOptions = {

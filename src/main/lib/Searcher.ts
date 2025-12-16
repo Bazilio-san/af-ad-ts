@@ -1,15 +1,18 @@
 // noinspection UnnecessaryLocalVariableJS
 
-import { Client, Attribute } from 'ldapts';
-import async from 'async';
 import { bg, black, rs } from 'af-color';
-import { RangeAttributesParser } from './RangeAttributesParser';
-import { IAdOptions, ISearchOptionsEx, SearchEntryEx, SearcherConstructorOptions, TSearchCallback } from '../../@type/i-searcher';
+import async from 'async';
+import { Client, Attribute } from 'ldapts';
+
+
 import { Control, Entry, SearchReference } from '../../@type/i-ldap';
-import { LdapSearchResult } from './LdapSearchResult';
+import { IAdOptions, ISearchOptionsEx, SearchEntryEx, SearcherConstructorOptions, TSearchCallback } from '../../@type/i-searcher';
 import { trace, toJson } from '../../lib/logger';
+
 import { defaultPreEntryParser, defaultPostEntryParser } from './default-entry-parser';
 import { EControl, getControl } from './get-control';
+import { LdapSearchResult } from './LdapSearchResult';
+import { RangeAttributesParser } from './RangeAttributesParser';
 
 /**
  * An interface for performing searches against an Active Directory database.
@@ -26,7 +29,7 @@ export class Searcher {
 
   private results: Map<string, SearchEntryEx>;
 
-  // eslint-disable-next-line no-use-before-define
+   
   private pendingReferrals: Set<Searcher>;
 
   private searchComplete: boolean;

@@ -1,4 +1,4 @@
-/* eslint-disable no-bitwise */
+ 
 import { Client, SearchOptions } from 'ldapts';
 
 /**
@@ -44,7 +44,7 @@ export const suggest = async (arg: {
     });
 
     return searchEntries;
-    // eslint-disable-next-line no-useless-catch
+     
   } catch (err) {
     throw err;
   } finally {

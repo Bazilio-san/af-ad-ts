@@ -1,5 +1,6 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console,import/order */
 import merge from 'merge-options';
+
 // import pino from 'pino';
 import { DEFAULT_ATTRIBUTES, findUser, IAdOptions, IUser, setLogger } from '../src';
 

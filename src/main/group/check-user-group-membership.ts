@@ -1,7 +1,8 @@
-/* eslint-disable class-methods-use-this */
+ 
 import { Client } from 'ldapts';
-import { escLdapString } from '../../lib/utilities';
+
 import { trace } from '../../lib/logger';
+import { escLdapString } from '../../lib/utilities';
 
 interface CacheEntry {
   result: boolean;

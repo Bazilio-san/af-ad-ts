@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
 import { createRequire } from 'module';
-import { GroupChecker } from '../../dist/cjs/src/main/group/check-user-group-membership.js';
+
 import { setLogger } from '../../dist/cjs/src/lib/logger.js';
+import { GroupChecker } from '../../dist/cjs/src/main/group/check-user-group-membership.js';
 
 setLogger();
 
