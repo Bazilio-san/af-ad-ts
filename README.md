@@ -36,10 +36,9 @@ const users = await findUsers(adOptions);
 const advancedAdOptions: IAdOptions = {
   baseDN: 'DC=company,DC=com',
   clientOptions: {
-    url: ['ldap://dc1.company.com', 'ldap://dc2.company.com'], // Multiple URLs for failover
+    url: 'ldap://dc1.company.com'
     bindDN: 'CN=service,CN=Users,DC=company,DC=com',
     bindCredentials: 'password',
-    reconnect: true, // Auto-reconnect on connection loss
     log: console // Custom logger
   },
   searchOptions: {
@@ -271,7 +270,6 @@ const searcher = new Searcher({
     url: 'ldap://dc.company.com',
     bindDN: 'service@company.com',
     bindCredentials: 'password',
-    reconnect: true
   },
   searchOptions: {
     filter: '(objectCategory=person)',
@@ -570,16 +568,13 @@ interface IAdOptions {
   /** LDAP client connection options */
   clientOptions: {
     /** LDAP server URL(s) - supports multiple for failover */
-    url: string | string[];
+    url: string;
 
     /** Bind DN - username in any AD format: 'user', 'user@domain.com', 'domain\user', 'cn=user,ou=users,dc=root' */
     bindDN: string;
 
     /** Password for the bind DN */
     bindCredentials: string;
-
-    /** Enable automatic reconnection on connection loss */
-    reconnect?: boolean;
 
     /** Custom logger instance */
     log?: IAbstractLogger;
